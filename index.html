@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>硬核工具站</title>
+
+<!-- 51LA 网站统计代码 -->
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+<script>LA.init({id:"3PjnuI4NYLrri7NP",ck:"3PjnuI4NYLrri7NP",autoTrack:true,hashMode:true,screenRecord:true})</script>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background: linear-gradient(135deg, #eef2f7, #e3e8ef);
+}
+
+/* 容器 */
+.container {
+    max-width: 520px;
+    margin: auto;
+    padding: 10px;
+}
+
+/* 标题 */
+.header {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 600;
+    padding: 15px 0 10px;
+}
+
+/* 网格 */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+/* 卡片 */
+.card {
+    background: rgba(255,255,255,0.9);
+    border-radius: 18px;
+    padding: 18px 5px;
+    text-align: center;
+    text-decoration: none;
+    color: #333;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    transition: all 0.2s ease;
+}
+
+/* 点击效果 */
+.card:active {
+    transform: scale(0.92);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* 图标 */
+.icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+/* 文字 */
+.text {
+    font-size: 14px;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* 右上角悬浮按钮 */
+.tip-btn {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    padding: 8px 12px;
+    background: #2196F3;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 9999;
+    cursor: pointer;
+}
+.tip-btn:active {
+    opacity: 0.8;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 右上角提示按钮 -->
+<button class="tip-btn" onclick="showTip()">购买说明</button>
+
+<div class="container">
+
+<div class="header">🛥️硬核工具站</div>
+
+<div class="grid">
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🎬</div><div class="text">播放器</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🖼️</div><div class="text">图片</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🎵</div><div class="text">音乐</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">📁</div><div class="text">文件</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🌏</div><div class="text">浏览器</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">⬇️</div><div class="text">下载</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">📝</div><div class="text">计算</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🕊️</div><div class="text">云服务</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🧭</div><div class="text">地图</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">📡</div><div class="text">雷达</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🎮</div><div class="text">游戏</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🛷</div><div class="text">测试中心</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🎞</div><div class="text">图像拆帧</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">🗃</div><div class="text">编译器</div>
+</a>
+
+<a class="card" href="/h/h8/j9/js/test.html">
+<div class="icon">📚</div><div class="text">知识提升</div>
+</a>
+
+</div>
+<div class="footer">
+        <p>© 2026ଘ(੭ˊᵕˋ)੭*
+            专注实用功能打造，高效便捷，解锁多元实用服务
+            
+            ദ്ദിᵔ..ᵔ₎✧</p>
+    </div>
+</div>
+
+<script>
+function showTip(){
+    alert("欢迎使用硬核工具，请到官方购买，每个仅需十元永久有效");
+    location.href = "/h/h8/j9/index5.html";
+}
+</script>
+
+</body>
+</html>
