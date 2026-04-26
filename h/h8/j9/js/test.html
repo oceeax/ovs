@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>单列密文CSV验证</title>
+<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+<style>
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body{
+    background:#111;
+    color:#fff;
+    text-align:center;
+    min-height: 100vh;
+    padding: 80px 15px 0;
+    font-family:微软雅黑,sans-serif;
+}
+.wel{
+    font-size: 16px;
+    color:#ccc;
+    margin-bottom: 35px;
+    letter-spacing:1px;
+    line-height: 1.6;
+}
+.input-wrap{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+input{
+    width: 100%;
+    max-width: 280px;
+    padding:12px 15px;
+    border:0;
+    border-radius:8px;
+    background:#222;
+    color:#fff;
+    outline:none;
+    border:1px solid #333;
+    font-size: 15px;
+}
+input:focus{
+    border-color:#2563eb;
+}
+button{
+    width: 100%;
+    max-width: 280px;
+    padding:12px;
+    background:#2563eb;
+    border:0;
+    color:#fff;
+    border-radius:8px;
+    cursor:pointer;
+    transition:0.2s;
+    font-size: 15px;
+}
+button:hover{
+    background:#1d4ed8;
+}
+.tip{
+    margin:30px 0;
+    font-size:17px;
+    font-weight:500;
+}
+</style>
+</head>
+<body>
+
+<div class="wel">🎁 欢迎体验硬核工具，平安喜乐相伴，一路顺遂无忧🌙</div>
+
+<div class="input-wrap">
+    <input id="pwdInput" placeholder="🔐 请输入激活码">
+    <button onclick="check()">验证解锁✨</button>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+const KEY = CryptoJS.enc.Utf8.parse("9s7d2k8g5h1j3p6q");
+const IV  = CryptoJS.enc.Utf8.parse("a1s2d3f4g5h6j7k8");
+
+const csvList = [
+  "./h1.csv",
+  "./h2.csv"
+];
+
+let miList = [];
+
+function toMi(plain){
+  let d = CryptoJS.enc.Utf8.parse(plain.trim());
+  return CryptoJS.AES.encrypt(d, KEY, {
+    iv: IV,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  }).toString();
+}
+
+async function loadCsv(){
+  for(let file of csvList){
+    let res = await fetch(file);
+    let txt = await res.text();
+    let rows = txt.split("\n").map(v=>v.trim()).filter(v=>v);
+    miList = miList.concat(rows);
+  }
+}
+
+async function check(){
+  if(miList.length <= 0) await loadCsv();
+  let userText = pwdInput.value.trim();
+  let userMi = toMi(userText);
+  if(miList.includes(userMi)){
+    tip.innerText = "✅ 验证通过，正在进入主页...";
+    tip.style.color = "#39d353";
+    localStorage.setItem("auth_ok","yes");
+    // 精准跳转你指定的真实主页
+    location.href = "h/h8/j9/jw/sd.html";
+  }else{
+    tip.innerText = "❌ 激活码错误，请重新输入";
+    tip.style.color = "#f56c6c";
+  }
+}
+</script>
+</body>
+</html>
