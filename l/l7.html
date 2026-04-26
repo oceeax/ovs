@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+    <title>APP唤起工具_双页_精准检测_自动下载日志</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#f0f2f5;padding:12px;}
+        .container{max-width:750px;margin:0 auto;}
+        .page{display:none;}
+        .page.active{display:block;}
+        .btn-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px;}
+        /* 第1、3列蓝色  第2、4列绿色 */
+        .app-btn:nth-child(4n+1),
+        .app-btn:nth-child(4n+3){
+            background:#409eff;
+            color:#fff;
+        }
+        .app-btn:nth-child(4n+2),
+        .app-btn:nth-child(4n+4){
+            background:#67c23a;
+            color:#fff;
+        }
+        .app-btn{
+            padding:14px 0;
+            border:none;
+            border-radius:8px;
+            font-size:14px;
+        }
+        .page-btn{
+            width:48%;
+            padding:10px;
+            border:none;
+            border-radius:6px;
+            background:#222;
+            color:#fff;
+            font-size:15px;
+            margin-bottom:15px;
+        }
+        .opt-box{display:flex;justify-content:space-between;}
+        .save-btn{
+            width:100%;
+            margin:12px 0;
+            padding:11px;
+            background:#e6a23c;
+            border:none;
+            border-radius:6px;
+            color:#fff;
+            font-size:15px;
+        }
+        .log-box{
+            background:#fff;
+            padding:15px;
+            border-radius:6px;
+            min-height:180px;
+            font-size:13px;
+            line-height:1.8;
+            white-space:pre-wrap;
+            overflow:auto;
+            max-height:300px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="opt-box">
+        <button class="page-btn" id="prevPage" disabled>上一页</button>
+        <button class="page-btn" id="nextPage">下一页</button>
+    </div>
+
+    <!-- 第一页 -->
+    <div class="page active" id="page1">
+        <div class="btn-wrap">
+            <button class="app-btn" data-scheme="weixin://" data-name="微信">微信</button>
+            <button class="app-btn" data-scheme="mqq://" data-name="QQ">QQ</button>
+            <button class="app-btn" data-scheme="baiduboxapp://" data-name="百度">百度</button>
+            <button class="app-btn" data-scheme="amap://" data-name="高德地图">高德</button>
+
+            <button class="app-btn" data-role="camera" data-name="相机">相机</button>
+            <button class="app-btn" data-role="browser" data-name="系统浏览器">浏览器</button>
+            <button class="app-btn" data-scheme="hgdz://" data-name="红果短剧">红果</button>
+            <button class="app-btn" data-scheme="taobao://" data-name="淘宝">淘宝</button>
+
+            <button class="app-btn" data-scheme="jd://" data-name="京东">京东</button>
+            <button class="app-btn" data-scheme="douyin://" data-name="抖音">抖音</button>
+            <button class="app-btn" data-scheme="mttbrowser://" data-name="QQ浏览器">QQ浏览器</button>
+            <button class="app-btn" data-scheme="kugou://" data-name="酷狗音乐">酷狗</button>
+
+            <button class="app-btn" data-scheme="quark://" data-name="夸克">夸克</button>
+            <button class="app-btn" data-scheme="qianwen://" data-name="千问">千问</button>
+            <button class="app-btn" data-scheme="kwai://" data-name="快手">快手</button>
+        </div>
+    </div>
+
+    <!-- 第二页 -->
+    <div class="page" id="page2">
+        <div class="btn-wrap">
+            <button class="app-btn" data-scheme="alipay://" data-name="支付宝">支付宝</button>
+            <button class="app-btn" data-scheme="meituan://" data-name="美团">美团</button>
+            <button class="app-btn" data-scheme="pinduoduo://" data-name="拼多多">拼多多</button>
+            <button class="app-btn" data-scheme="xhs://" data-name="小红书">小红书</button>
+
+            <button class="app-btn" data-scheme="bilibili://" data-name="B站">哔哩哔哩</button>
+            <button class="app-btn" data-scheme="weibo://" data-name="微博">微博</button>
+            <button class="app-btn" data-scheme="ucbrowser://" data-name="UC浏览器">UC</button>
+            <button class="app-btn" data-scheme="tencentvideo://" data-name="腾讯视频">腾讯视频</button>
+
+            <button class="app-btn" data-scheme="iqiyi://" data-name="爱奇艺">爱奇艺</button>
+            <button class="app-btn" data-scheme="fanqienovel://" data-name="番茄小说">番茄</button>
+            <button class="app-btn" data-scheme="ximalaya://" data-name="喜马拉雅">喜马拉雅</button>
+            <button class="app-btn" data-scheme="cmb://" data-name="招商银行">招行</button>
+        </div>
+    </div>
+
+    <button class="save-btn" id="saveLog">📥 一键下载日志TXT</button>
+    <div class="log-box" id="log">【运行日志开始】
+</div>
+</div>
+
+<script>
+    const logDom = document.getElementById('log');
+    let logList = [];
+    let nowPage = 1;
+    const page1 = document.getElementById('page1');
+    const page2 = document.getElementById('page2');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    // 分页切换
+    nextBtn.onclick = () => {
+        nowPage = 2;
+        page1.classList.remove('active');
+        page2.classList.add('active');
+        prevBtn.disabled = false;
+        nextBtn.disabled = true;
+    }
+    prevBtn.onclick = () => {
+        nowPage = 1;
+        page2.classList.remove('active');
+        page1.classList.add('active');
+        nextBtn.disabled = false;
+        prevBtn.disabled = true;
+    }
+
+    // 写入日志 + 弹窗提示
+    function writeLog(msg, alertTip = "") {
+        const time = new Date().toLocaleString();
+        const text = `[${time}] ${msg}`;
+        logList.push(text);
+        logDom.innerText += text + '\n';
+        logDom.scrollTop = logDom.scrollHeight;
+        if(alertTip) alert(alertTip);
+    }
+
+    // 自动下载日志
+    function downLog() {
+        if(logList.length === 0){
+            alert("暂无日志内容");
+            return;
+        }
+        let content = logList.join("\r\n");
+        let blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `APP调用日志_${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    // 绑定下载按钮
+    document.getElementById("saveLog").addEventListener("click", downLog);
+
+    // 核心唤起+精准判断
+    function openApp(btn) {
+        const scheme = btn.dataset.scheme;
+        const name = btn.dataset.name;
+        const isCamera = btn.dataset.role === "camera";
+        const isBrowser = btn.dataset.role === "browser";
+
+        // 相机
+        if(isCamera){
+            try {
+                let intentUrl = "intent:#Intent;action=android.media.action.IMAGE_CAPTURE;end;";
+                location.href = intentUrl;
+                writeLog(`✅【${name}】唤起成功`, "相机已打开");
+            } catch (e) {
+                writeLog(`❌【${name}】唤起失败：浏览器禁止调用相机`, "调用相机失败");
+            }
+            return;
+        }
+
+        // 系统浏览器
+        if(isBrowser){
+            writeLog(`ℹ️【${name}】已唤起系统默认浏览器`, "已打开浏览器");
+            return;
+        }
+
+        // 无协议
+        if(!scheme){
+            writeLog(`❌【${name}】暂无可用唤醒协议`, "暂无唤醒协议");
+            return;
+        }
+
+        let openFlag = false;
+        // 切后台判定成功
+        const visibleFn = () => {
+            if(document.hidden){
+                openFlag = true;
+                writeLog(`✅【${name}】唤起成功`, `已打开${name}`);
+                document.removeEventListener("visibilitychange", visibleFn);
+            }
+        };
+        document.addEventListener("visibilitychange", visibleFn);
+
+        // 隐藏iframe跳转
+        let iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = scheme;
+        document.body.appendChild(iframe);
+
+        // 超时判断未安装
+        setTimeout(() => {
+            document.removeEventListener("visibilitychange", visibleFn);
+            document.body.removeChild(iframe);
+            if(!openFlag){
+                // 细分错误
+                let errText = "";
+                if(navigator.userAgent.toLowerCase().indexOf("android") > -1){
+                    errText = `❌【${name}】唤起失败：本机未安装该APP`;
+                    writeLog(errText, `本机未安装${name}`);
+                }else{
+                    errText = `❌【${name}】唤起失败：当前设备不支持或浏览器拦截`;
+                    writeLog(errText, "浏览器拦截/设备不支持");
+                }
+            }
+        }, 700);
+    }
+
+    // 绑定所有按钮
+    document.querySelectorAll(".app-btn").forEach(btn => {
+        btn.addEventListener("click", () => openApp(btn));
+    });
+</script>
+</body>
+</html>
