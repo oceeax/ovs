@@ -17,13 +17,10 @@ button:disabled{background:#475569;cursor:not-allowed;}
 .tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px}
 .tip button{background:none;border:none;color:#3b82f6;cursor:pointer}
 .hidden{display:none}
-.log{margin-top:20px;padding:10px;background:#1a1a1a;border-radius:6px;font-size:12px;color:#aaa;max-height:150px;overflow:auto}
 </style>
 </head>
 <body>
-
 <div class="box">
-    <!-- 登录 -->
     <div id="loginBox">
         <h2>登录</h2>
         <div id="loginMsg" class="msg"></div>
@@ -33,7 +30,6 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
     </div>
 
-    <!-- 注册 -->
     <div id="regBox" class="hidden">
         <h2>注册</h2>
         <div id="regMsg" class="msg"></div>
@@ -43,27 +39,15 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
     </div>
 
-    <!-- 成功 -->
     <div id="userBox" class="hidden" style="text-align:center">
         <h2>登录成功</h2>
         <p id="userMail" style="color:#94a3b8"></p>
         <p style="color:#94a3b8;font-size:14px;margin-top:10px">正在跳转到首页...</p>
     </div>
-
-    <!-- 调试日志（关键！） -->
-    <div class="log" id="log">日志：</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// 日志函数
-function addLog(text){
-    const logDiv = document.getElementById("log");
-    logDiv.innerHTML += "<br>[" + new Date().toLocaleTimeString() + "] " + text;
-    logDiv.scrollTop = logDiv.scrollHeight;
-}
-
-// DOM 元素
 const loginBox = document.getElementById('loginBox');
 const regBox = document.getElementById('regBox');
 const userBox = document.getElementById('userBox');
@@ -77,19 +61,14 @@ const userMail = document.getElementById('userMail');
 const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
 
-// Supabase 配置
-addLog("正在初始化 Supabase...");
 const sb = supabase.createClient(
     "https://czispkecvokqsvomquqo.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
-addLog("✅ Supabase 初始化完成");
 
-// 一分钟冷却
-const COOLDOWN = 60;
-let regCooldown = false;
+let isRegCoolDown = false;
+const coolTime = 60000;
 
-// 切换
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
@@ -109,146 +88,81 @@ function showUser(email){
     if(email) userMail.innerText = email;
 }
 
-// 注册
 async function doReg(){
-    addLog("🟢 注册按钮被点击");
-    if (regCooldown) {
-        addLog("🔴 注册冷却中");
+    if(isRegCoolDown){
         regMsg.className="msg err";
-        regMsg.innerText="请一分钟后再试";
+        regMsg.innerText = "请一分钟后再试";
         return;
     }
-
-    let email = regEmail.value.trim();
-    let password = regPwd.value.trim();
-    regMsg.style.display = "none";
-
-    if(!email){
-        addLog("🔴 邮箱为空");
-        regMsg.className="msg err";
-        regMsg.innerText="请输入邮箱";
-        return;
-    }
-    if(password.length < 6){
-        addLog("🔴 密码不足6位");
-        regMsg.className="msg err";
-        regMsg.innerText="密码至少6位";
-        return;
-    }
-
+    let e = regEmail.value.trim();
+    let p = regPwd.value.trim();
+    regMsg.style.display="none";
+    if(!e){regMsg.className="msg err";regMsg.innerText="请输入邮箱";return;}
+    if(p.length<6){regMsg.className="msg err";regMsg.innerText="密码至少6位";return;}
     regBtn.disabled = true;
-    addLog("🟢 正在请求注册接口...");
-
-    const { error } = await sb.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-            emailRedirectTo: "https://ddaa.online/login.html"
-        }
+    const {error} = await sb.auth.signUp({
+        email:e,password:p,
+        options:{emailRedirectTo:"https://ddaa.online/login.html"}
     });
-
-    regBtn.disabled = false;
-
+    regBtn.disabled=false;
     if(error){
-        addLog("🔴 注册错误：" + error.message);
         if(error.message.includes("rate limit")){
-            regMsg.className="msg err";
             regMsg.innerText="请一分钟后再试";
-            regCooldown = true;
-            setTimeout(() => {
-                regCooldown = false;
-            }, COOLDOWN * 1000);
-        } else {
-            regMsg.className="msg err";
-            regMsg.innerText = error.message;
+            isRegCoolDown=true;
+            setTimeout(()=>isRegCoolDown=false,coolTime);
+        }else{
+            regMsg.innerText=error.message;
         }
+        regMsg.className="msg err";
     }else{
-        addLog("🟢 注册成功");
         regMsg.className="msg ok";
-        regMsg.innerText="注册成功！请前往邮箱验证";
+        regMsg.innerText="注册成功，请去邮箱查收邮件";
     }
 }
 
-// 登录（带日志+跳转）
 async function doLogin(){
-    addLog("🟢 登录按钮被点击");
-    let email = loginEmail.value.trim();
-    let password = loginPwd.value.trim();
-    loginMsg.style.display = "none";
-
-    if(!email){
-        addLog("🔴 邮箱为空");
-        loginMsg.className="msg err";
-        loginMsg.innerText="请输入邮箱";
-        return;
-    }
-    if(!password){
-        addLog("🔴 密码为空");
-        loginMsg.className="msg err";
-        loginMsg.innerText="请输入密码";
-        return;
-    }
-
+    let e = loginEmail.value.trim();
+    let p = loginPwd.value.trim();
+    loginMsg.style.display="none";
+    if(!e){loginMsg.className="msg err";loginMsg.innerText="请输入邮箱";return;}
+    if(!p){loginMsg.className="msg err";loginMsg.innerText="请输入密码";return;}
     loginBtn.disabled = true;
-    addLog("🟢 正在请求登录接口...");
-
     try{
-        const { data, error } = await sb.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-
+        const {data,error} = await sb.auth.signInWithPassword({email:e,password:p});
         if(error){
-            addLog("🔴 登录错误：" + error.message);
             loginMsg.className="msg err";
-            loginMsg.innerText = "用户不存在或密码错误";
+            loginMsg.innerText="用户不存在或密码错误";
         }else{
-            addLog("🟢 登录成功：" + data.user.email);
             loginMsg.className="msg ok";
-            loginMsg.innerText = "登录成功！正在跳转...";
-            showUser(data.user.email);
-            // 1秒后跳转到index.html
-            setTimeout(() => {
-                addLog("🟢 正在跳转到index.html");
-                window.location.href = "index.html";
-            }, 1000);
+            loginMsg.innerText="登录成功，正在跳转...";
+            setTimeout(()=>{
+                showUser(data.user.email);
+                setTimeout(()=>{
+                    window.location.href="index.html";
+                },1000);
+            },500);
         }
-    }catch(e){
-        addLog("🔴 网络异常：" + e.message);
+    }catch{
         loginMsg.className="msg err";
-        loginMsg.innerText = "请求异常，请稍后重试";
+        loginMsg.innerText="请求异常，请稍后重试";
     }
-
     loginBtn.disabled = false;
 }
 
-// 退出登录
 async function doLogout(){
-    addLog("🟢 退出登录");
     await sb.auth.signOut();
     showLogin();
 }
 
-// 页面加载检测登录状态
-window.onload = async () => {
-    addLog("🟢 页面加载，检测登录状态");
-    try{
-        const { data } = await sb.auth.getSession();
-        if(data.session?.user){
-            addLog("🟢 已登录：" + data.session.user.email);
-            showUser(data.session.user.email);
-            setTimeout(() => {
-                addLog("🟢 已登录，直接跳转");
-                window.location.href = "index.html";
-            }, 1000);
-        }else{
-            addLog("🟢 未登录");
-        }
-    }catch(e){
-        addLog("🔴 登录检测失败：" + e.message);
+window.onload = async ()=>{
+    const {data} = await sb.auth.getSession();
+    if(data.session?.user){
+        showUser(data.session.user.email);
+        setTimeout(()=>{
+            window.location.href="index.html";
+        },1000);
     }
 };
 </script>
-
 </body>
-            </html>
+</html>
