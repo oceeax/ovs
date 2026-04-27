@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>稳定登录系统</title>
-
 <style>
 body{margin:0;background:#0f172a;color:#fff;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh}
 .box{width:380px;background:#1e293b;padding:28px;border-radius:12px}
@@ -20,44 +19,35 @@ button:disabled{background:#475569;cursor:not-allowed;}
 .hidden{display:none}
 </style>
 </head>
-
 <body>
-
 <div class="box">
+    <div id="loginBox">
+        <h2>登录</h2>
+        <div id="loginMsg" class="msg"></div>
+        <input id="loginEmail" placeholder="邮箱">
+        <input id="loginPwd" type="password" placeholder="密码">
+        <button id="loginBtn" onclick="doLogin()">登录</button>
+        <div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
+    </div>
 
-<!-- 登录 -->
-<div id="loginBox">
-<h2>登录</h2>
-<div id="loginMsg" class="msg"></div>
-<input id="loginEmail" placeholder="邮箱">
-<input id="loginPwd" type="password" placeholder="密码">
-<button id="loginBtn" onclick="doLogin()">登录</button>
-<div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
-</div>
+    <div id="regBox" class="hidden">
+        <h2>注册</h2>
+        <div id="regMsg" class="msg"></div>
+        <input id="regEmail" placeholder="邮箱">
+        <input id="regPwd" type="password" placeholder="密码">
+        <button id="regBtn" onclick="doReg()">注册</button>
+        <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
+    </div>
 
-<!-- 注册 -->
-<div id="regBox" class="hidden">
-<h2>注册</h2>
-<div id="regMsg" class="msg"></div>
-<input id="regEmail" placeholder="邮箱">
-<input id="regPwd" type="password" placeholder="密码">
-<button id="regBtn" onclick="doReg()">注册</button>
-<div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
-</div>
-
-<!-- 成功 -->
-<div id="userBox" class="hidden" style="text-align:center">
-<h2>登录成功</h2>
-<p id="userMail" style="color:#94a3b8"></p>
-<button onclick="doLogout()">退出</button>
-</div>
-
+    <div id="userBox" class="hidden" style="text-align:center">
+        <h2>登录成功</h2>
+        <p id="userMail" style="color:#94a3b8"></p>
+        <p style="color:#94a3b8;font-size:14px;margin-top:10px">正在跳转到首页...</p>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-// DOM 元素
 const loginBox = document.getElementById('loginBox');
 const regBox = document.getElementById('regBox');
 const userBox = document.getElementById('userBox');
@@ -71,17 +61,13 @@ const userMail = document.getElementById('userMail');
 const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
 
-// Supabase 配置
+// 你的Supabase配置
 const sb = supabase.createClient(
     "https://czispkecvokqsvomquqo.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
-// 一分钟冷却
-const COOLDOWN = 60;
-let regCooldown = false;
-
-// 切换
+// 切换函数
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
@@ -94,17 +80,60 @@ function showReg(){
     userBox.classList.add("hidden");
     regMsg.style.display = "none";
 }
-function showUser(email){
-    loginBox.classList.add("hidden");
-    regBox.classList.add("hidden");
-    userBox.classList.remove("hidden");
-    if(email) userMail.innerText = email;
+
+// 【重点修改】登录函数：成功后跳转到index.html
+async function doLogin(){
+    let email = loginEmail.value.trim();
+    let password = loginPwd.value.trim();
+    loginMsg.style.display = "none";
+
+    // 非空校验
+    if(!email){
+        loginMsg.className="msg err";
+        loginMsg.innerText="请输入邮箱";
+        return;
+    }
+    if(!password){
+        loginMsg.className="msg err";
+        loginMsg.innerText="请输入密码";
+        return;
+    }
+
+    // 防止重复点击
+    loginBtn.disabled = true;
+
+    try{
+        const { data, error } = await sb.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if(error){
+            // 密码错误/用户不存在提示
+            loginMsg.className="msg err";
+            loginMsg.innerText = "用户不存在或密码错误";
+        }else{
+            // 登录成功，显示成功页，然后跳转到index.html
+            loginMsg.className="msg ok";
+            loginMsg.innerText = "登录成功！";
+            showUser(data.user.email);
+            // 1秒后跳转到index.html
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1000);
+        }
+    }catch(e){
+        // 网络错误提示
+        loginMsg.className="msg err";
+        loginMsg.innerText = "请求异常，请稍后重试";
+    }
+
+    loginBtn.disabled = false;
 }
 
-// 注册（带防重复提交+1分钟冷却）
+// 注册函数（带1分钟冷却）
 async function doReg(){
-    // 冷却中直接提示
-    if (regCooldown) {
+    if(isRegCoolDown){
         regMsg.className="msg err";
         regMsg.innerText="请一分钟后再试";
         return;
@@ -125,7 +154,6 @@ async function doReg(){
         return;
     }
 
-    // 防重复提交：禁用按钮
     regBtn.disabled = true;
 
     const { error } = await sb.auth.signUp({
@@ -136,19 +164,16 @@ async function doReg(){
         }
     });
 
-    // 恢复按钮
     regBtn.disabled = false;
 
     if(error){
-        // 只有 rate limit 错误提示“请一分钟后再试”，其他错误正常提示
         if(error.message.includes("rate limit")){
             regMsg.className="msg err";
             regMsg.innerText="请一分钟后再试";
-            // 触发1分钟冷却
-            regCooldown = true;
+            isRegCoolDown = true;
             setTimeout(() => {
-                regCooldown = false;
-            }, COOLDOWN * 1000);
+                isRegCoolDown = false;
+            }, 60000);
         } else {
             regMsg.className="msg err";
             regMsg.innerText = error.message;
@@ -159,75 +184,28 @@ async function doReg(){
     }
 }
 
-// 【重点修复】登录函数（带完整错误捕获）
-async function doLogin(){
-    // 1. 获取输入值
-    let email = loginEmail.value.trim();
-    let password = loginPwd.value.trim();
-    loginMsg.style.display = "none";
-
-    // 2. 非空校验
-    if(!email){
-        loginMsg.className="msg err";
-        loginMsg.innerText="请输入邮箱";
-        return;
-    }
-    if(!password){
-        loginMsg.className="msg err";
-        loginMsg.innerText="请输入密码";
-        return;
-    }
-
-    // 3. 禁用按钮，防止重复点击
-    loginBtn.disabled = true;
-
-    try{
-        // 4. 调用登录接口
-        const { data, error } = await sb.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-
-        // 5. 接口返回错误
-        if(error){
-            loginMsg.className="msg err";
-            loginMsg.innerText = error.message;
-        }else{
-            // 6. 登录成功，切换页面
-            loginMsg.className="msg ok";
-            loginMsg.innerText = "登录成功！";
-            setTimeout(() => {
-                showUser(data.user.email);
-            }, 500);
-        }
-    }catch(e){
-        // 7. 捕获所有异常（比如网络错误、初始化失败）
-        loginMsg.className="msg err";
-        loginMsg.innerText = "请求异常：" + e.message;
-    }finally{
-        // 8. 无论成功失败，恢复按钮
-        loginBtn.disabled = false;
-    }
+function showUser(email){
+    loginBox.classList.add("hidden");
+    regBox.classList.add("hidden");
+    userBox.classList.remove("hidden");
+    if(email) userMail.innerText = email;
 }
 
-// 退出登录
 async function doLogout(){
     await sb.auth.signOut();
     showLogin();
 }
 
-// 页面加载检测登录状态
 window.onload = async () => {
-    try{
-        const { data } = await sb.auth.getSession();
-        if(data.session?.user){
-            showUser(data.session.user.email);
-        }
-    }catch(e){
-        console.log("登录检测失败",e);
+    const { data } = await sb.auth.getSession();
+    if(data.session?.user){
+        // 已登录状态，直接跳转
+        showUser(data.session.user.email);
+        setTimeout(() => {
+            window.location.href = "index.html";
+        }, 1000);
     }
 };
 </script>
-
 </body>
 </html>
