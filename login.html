@@ -62,112 +62,113 @@ button:hover{background:#1d4ed8}
 
 </div>
 
-<!-- CDN（稳定版） -->
+<!-- CDN稳定版 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+// 元素全局绑定（修复dom未获取报错）
+const loginBox = document.getElementById('loginBox');
+const regBox = document.getElementById('regBox');
+const userBox = document.getElementById('userBox');
+const loginMsg = document.getElementById('loginMsg');
+const regMsg = document.getElementById('regMsg');
+const loginEmail = document.getElementById('loginEmail');
+const loginPwd = document.getElementById('loginPwd');
+const regEmail = document.getElementById('regEmail');
+const regPwd = document.getElementById('regPwd');
+const userMail = document.getElementById('userMail');
 
-// ===== 防炸检查 =====
-if(!window.supabase){
-    alert("Supabase加载失败（CDN问题）");
-}
+// Supabase 完整配置（已填你的信息）
+const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0";
 
-// ===== 初始化 =====
-const sb = window.supabase.createClient(
-    "https://czispkecvokqsvomquqo.supabase.co",
-    "你的anon key"
-);
+// 初始化客户端
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ===== 切换 =====
+// 切换表单
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
     userBox.classList.add("hidden");
 }
-
 function showReg(){
     loginBox.classList.add("hidden");
     regBox.classList.remove("hidden");
     userBox.classList.add("hidden");
 }
-
 function showUser(email){
     loginBox.classList.add("hidden");
     regBox.classList.add("hidden");
     userBox.classList.remove("hidden");
-
     if(email) userMail.innerText = email;
 }
 
-// ===== 注册（已修复）=====
+// 注册
 async function doReg(){
-
     let email = regEmail.value.trim();
     let password = regPwd.value.trim();
-
-    regMsg.style.display="none";
+    regMsg.style.display = "none";
 
     if(!email){
         regMsg.className="msg err";
         regMsg.innerText="请输入邮箱";
         return;
     }
-
-    if(password.length<6){
+    if(password.length < 6){
         regMsg.className="msg err";
         regMsg.innerText="密码至少6位";
         return;
     }
 
     const { error } = await sb.auth.signUp({
-        email,
-        password
+        email: email,
+        password: password,
+        options: {
+            emailRedirectTo: "https://ddaa.online/login.html"
+        }
     });
 
     if(error){
         regMsg.className="msg err";
-        regMsg.innerText=error.message;
+        regMsg.innerText = error.message;
     }else{
         regMsg.className="msg ok";
-        regMsg.innerText="注册成功，请去邮箱验证";
+        regMsg.innerText="注册成功！请前往邮箱验证";
     }
 }
 
-// ===== 登录（已修复）=====
+// 登录
 async function doLogin(){
-
     let email = loginEmail.value.trim();
     let password = loginPwd.value.trim();
-
-    loginMsg.style.display="none";
+    loginMsg.style.display = "none";
 
     const { data, error } = await sb.auth.signInWithPassword({
-        email,
-        password   // 🔥 修复点
+        email: email,
+        password: password
     });
 
     if(error){
         loginMsg.className="msg err";
-        loginMsg.innerText=error.message;
+        loginMsg.innerText = error.message;
     }else{
         showUser(data.user.email);
     }
 }
 
-// ===== 退出 =====
+// 退出登录
 async function doLogout(){
     await sb.auth.signOut();
     showLogin();
 }
 
-// ===== 初始化检测 =====
+// 页面加载检测登录状态
 window.onload = async () => {
     const { data } = await sb.auth.getSession();
     if(data.session?.user){
         showUser(data.session.user.email);
     }
 };
-
 </script>
 
 </body>
