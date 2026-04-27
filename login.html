@@ -11,12 +11,13 @@ body{margin:0;background:#0f172a;color:#fff;font-family:system-ui;display:flex;j
 h2{text-align:center;margin-bottom:20px}
 input{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#fff}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer}
-button:hover{background:#1d4ed8}
-.msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px}
+button:disabled{background:#475569;cursor:not-allowed}
+button:hover:not(:disabled){background:#1d4ed8}
+.msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px;text-align:center}
 .err{background:#7f1d1d;display:block}
 .ok{background:#065f46;display:block}
 .tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px}
-.tip button{background:none;border:none;color:#3b82f6;cursor:pointer}
+.tip button{background:none;border:none;color:#3b82f6;cursor:pointer;padding:0;margin:0}
 .hidden{display:none}
 </style>
 </head>
@@ -28,20 +29,28 @@ button:hover{background:#1d4ed8}
 <!-- 登录 -->
 <div id="loginBox">
 <h2>登录</h2>
+
 <div id="loginMsg" class="msg"></div>
+
 <input id="loginEmail" placeholder="邮箱">
 <input id="loginPwd" type="password" placeholder="密码">
-<button onclick="doLogin()">登录</button>
+
+<button id="loginBtn" onclick="doLogin()">登录</button>
+
 <div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
 </div>
 
 <!-- 注册 -->
 <div id="regBox" class="hidden">
 <h2>注册</h2>
+
 <div id="regMsg" class="msg"></div>
+
 <input id="regEmail" placeholder="邮箱">
 <input id="regPwd" type="password" placeholder="密码">
-<button onclick="doReg()">注册</button>
+
+<button id="regBtn" onclick="doReg()">注册</button>
+
 <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
 </div>
 
@@ -57,7 +66,7 @@ button:hover{background:#1d4ed8}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// 1. 提前绑定所有DOM
+// DOM 元素
 const loginBox = document.getElementById('loginBox');
 const regBox = document.getElementById('regBox');
 const userBox = document.getElementById('userBox');
@@ -68,37 +77,34 @@ const loginPwd = document.getElementById('loginPwd');
 const regEmail = document.getElementById('regEmail');
 const regPwd = document.getElementById('regPwd');
 const userMail = document.getElementById('userMail');
+const loginBtn = document.getElementById('loginBtn');
+const regBtn = document.getElementById('regBtn');
 
-// 2. Supabase 配置
-const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0";
+// Supabase 配置
+const sb = supabase.createClient(
+    "https://czispkecvokqsvomquqo.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
+);
 
-// 捕获全局所有JS错误
-window.onerror = function(msg,url,line){
-    alert("JS错误："+msg+"\n行号："+line);
-}
-
-// 3. 初始化检测
-let sb = null;
-try{
-    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    alert("✅ Supabase 初始化成功");
-}catch(e){
-    alert("❌ Supabase 初始化失败："+e.message);
-}
+// 冷却控制（1分钟=60秒）
+const COOLDOWN = 60;
+let regCooldown = false;
 
 // 切换
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
     userBox.classList.add("hidden");
+    loginMsg.style.display = "none";
 }
+
 function showReg(){
     loginBox.classList.add("hidden");
     regBox.classList.remove("hidden");
     userBox.classList.add("hidden");
-    alert("✅ 已打开注册页面");
+    regMsg.style.display = "none";
 }
+
 function showUser(email){
     loginBox.classList.add("hidden");
     regBox.classList.add("hidden");
@@ -106,53 +112,61 @@ function showUser(email){
     if(email) userMail.innerText = email;
 }
 
-// 注册【全程弹窗提示】
+// 注册（带防重复提交+1分钟冷却）
 async function doReg(){
-    alert("🟢 注册按钮已点击，开始执行");
+    // 冷却中直接提示
+    if (regCooldown) {
+        regMsg.className="msg err";
+        regMsg.innerText="请一分钟后再试";
+        return;
+    }
 
     let email = regEmail.value.trim();
     let password = regPwd.value.trim();
     regMsg.style.display = "none";
 
-    alert("填写邮箱："+email);
-    alert("填写密码长度："+password.length);
-
-    // 非空校验
     if(!email){
         regMsg.className="msg err";
         regMsg.innerText="请输入邮箱";
-        alert("🔴 错误：未填邮箱");
         return;
     }
     if(password.length < 6){
         regMsg.className="msg err";
         regMsg.innerText="密码至少6位";
-        alert("🔴 错误：密码不足6位");
         return;
     }
 
-    alert("🟢 开始请求Supabase注册接口");
+    // 防重复提交：禁用按钮
+    regBtn.disabled = true;
 
-    try{
-        const { error } = await sb.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-                emailRedirectTo: "https://ddaa.online/login.html"
-            }
-        });
+    const { error } = await sb.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            emailRedirectTo: "https://ddaa.online/login.html"
+        }
+    });
 
-        if(error){
-            alert("🔴 注册接口返回错误："+error.message);
+    // 恢复按钮
+    regBtn.disabled = false;
+
+    if(error){
+        // 只有 rate limit 错误提示“请一分钟后再试”，其他错误直接提示原信息
+        if(error.message.includes("rate limit")){
+            regMsg.className="msg err";
+            regMsg.innerText="请一分钟后再试";
+            // 触发1分钟冷却
+            regCooldown = true;
+            setTimeout(() => {
+                regCooldown = false;
+            }, COOLDOWN * 1000);
+        } else {
             regMsg.className="msg err";
             regMsg.innerText = error.message;
-        }else{
-            alert("🟢 注册请求成功！请去邮箱收验证邮件");
-            regMsg.className="msg ok";
-            regMsg.innerText="注册成功！请前往邮箱验证";
         }
-    }catch(e){
-        alert("🔴 请求异常报错："+e.message);
+    }else{
+        regMsg.className="msg ok";
+        regMsg.innerText="注册成功！请前往邮箱验证";
     }
 }
 
@@ -162,37 +176,30 @@ async function doLogin(){
     let password = loginPwd.value.trim();
     loginMsg.style.display = "none";
 
-    try{
-        const { data, error } = await sb.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-        if(error){
-            loginMsg.className="msg err";
-            loginMsg.innerText = error.message;
-        }else{
-            showUser(data.user.email);
-        }
-    }catch(e){
-        alert("登录报错："+e.message);
+    const { data, error } = await sb.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+
+    if(error){
+        loginMsg.className="msg err";
+        loginMsg.innerText = error.message;
+    }else{
+        showUser(data.user.email);
     }
 }
 
-// 退出
+// 退出登录
 async function doLogout(){
     await sb.auth.signOut();
     showLogin();
 }
 
-// 页面加载检测登录
+// 页面加载检测登录状态
 window.onload = async () => {
-    try{
-        const { data } = await sb.auth.getSession();
-        if(data.session?.user){
-            showUser(data.session.user.email);
-        }
-    }catch(e){
-        console.log("登录检测失败",e);
+    const { data } = await sb.auth.getSession();
+    if(data.session?.user){
+        showUser(data.session.user.email);
     }
 };
 </script>
