@@ -1,312 +1,148 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - 硬核工具站</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        body {
-            background: #0f172a;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .auth-container {
-            width: 100%;
-            max-width: 400px;
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 32px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .auth-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .auth-header h1 {
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-        .auth-header p {
-            color: #94a3b8;
-            font-size: 14px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: #cbd5e1;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            background: #0f172a;
-            color: #fff;
-            font-size: 16px;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-primary {
-            background: #3b82f6;
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-        .auth-switch {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 14px;
-            color: #94a3b8;
-        }
-        .auth-switch button {
-            background: none;
-            border: none;
-            color: #3b82f6;
-            text-decoration: underline;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .message {
-            margin: 16px 0;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            text-align: center;
-            display: none;
-        }
-        .message.success {
-            background: #065f46;
-            color: #a7f3d0;
-            display: block;
-        }
-        .message.error {
-            background: #991b1b;
-            color: #fecaca;
-            display: block;
-        }
-        .dashboard {
-            display: none;
-            text-align: center;
-        }
-        .dashboard h2 {
-            margin-bottom: 16px;
-        }
-        .dashboard p {
-            color: #94a3b8;
-            margin-bottom: 24px;
-        }
-        .btn-danger {
-            background: #dc2626;
-            color: #fff;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>账号登录</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif}
+body{background:#0f172a;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{width:100%;max-width:400px;background:#1e293b;border-radius:12px;padding:32px}
+h2{text-align:center;margin-bottom:24px}
+.item{margin-bottom:18px}
+label{display:block;margin-bottom:6px;color:#cbd5e1;font-size:14px}
+input{width:100%;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#fff;font-size:16px}
+.btn{width:100%;padding:13px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:16px;cursor:pointer}
+.tip{text-align:center;margin-top:20px;font-size:14px;color:#94a3b8}
+.tip button{background:none;border:none;color:#3b82f6;cursor:pointer;font-size:14px}
+.msg{padding:10px;border-radius:6px;margin:12px 0;text-align:center;font-size:14px;display:none}
+.err{background:#991b1b;display:block}
+.ok{background:#065f46;display:block}
+</style>
 </head>
 <body>
-    <div class="auth-container" id="authForm">
-        <!-- 登录表单 -->
-        <div id="loginForm">
-            <div class="auth-header">
-                <h1>欢迎回来</h1>
-                <p>登录你的账号继续使用</p>
-            </div>
-            <div class="message" id="loginMessage"></div>
-            <div class="form-group">
-                <label for="loginEmail">邮箱地址</label>
-                <input type="email" id="loginEmail" placeholder="your@email.com" required>
-            </div>
-            <div class="form-group">
-                <label for="loginPassword">密码</label>
-                <input type="password" id="loginPassword" placeholder="输入密码" required>
-            </div>
-            <button class="btn btn-primary" onclick="handleLogin()">登录</button>
-            <div class="auth-switch">
-                还没有账号？<button onclick="showRegister()">立即注册</button>
-            </div>
-        </div>
+<div class="box">
 
-        <!-- 注册表单 -->
-        <div id="registerForm" style="display: none;">
-            <div class="auth-header">
-                <h1>创建账号</h1>
-                <p>注册后即可解锁全部功能</p>
-            </div>
-            <div class="message" id="registerMessage"></div>
-            <div class="form-group">
-                <label for="registerEmail">邮箱地址</label>
-                <input type="email" id="registerEmail" placeholder="your@email.com" required>
-            </div>
-            <div class="form-group">
-                <label for="registerPassword">设置密码</label>
-                <input type="password" id="registerPassword" placeholder="至少6位字符" required>
-            </div>
-            <button class="btn btn-primary" onclick="handleRegister()">注册</button>
-            <div class="auth-switch">
-                已有账号？<button onclick="showLogin()">立即登录</button>
-            </div>
+    <!-- 登录 -->
+    <div id="loginBox">
+        <h2>账号登录</h2>
+        <div class="msg" id="loginMsg"></div>
+        <div class="item">
+            <label>邮箱</label>
+            <input type="email" id="loginEmail">
         </div>
-
-        <!-- 登录后的仪表盘 -->
-        <div id="dashboard" class="dashboard">
-            <h2>登录成功！🎉</h2>
-            <p id="userEmail"></p>
-            <button class="btn btn-danger" onclick="handleLogout()">退出登录</button>
+        <div class="item">
+            <label>密码</label>
+            <input type="password" id="loginPwd">
         </div>
+        <button class="btn" onclick="doLogin()">登录</button>
+        <div class="tip">没有账号？<button onclick="showReg()">去注册</button></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        // 全局唯一声明，避免重复定义
-        window.supabase = null;
+    <!-- 注册 -->
+    <div id="regBox" style="display:none">
+        <h2>账号注册</h2>
+        <div class="msg" id="regMsg"></div>
+        <div class="item">
+            <label>邮箱</label>
+            <input type="email" id="regEmail">
+        </div>
+        <div class="item">
+            <label>密码（至少6位）</label>
+            <input type="password" id="regPwd">
+        </div>
+        <button class="btn" onclick="doReg()">立即注册</button>
+        <div class="tip">已有账号？<button onclick="showLogin()">去登录</button></div>
+    </div>
 
-        // 初始化 Supabase
-        document.addEventListener('DOMContentLoaded', function() {
-            const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
-            const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0";
+    <!-- 登录成功 -->
+    <div id="userBox" style="display:none;text-align:center">
+        <h2>登录成功</h2>
+        <p id="userMail" style="margin:20px 0;color:#ccc"></p>
+        <button class="btn" onclick="doLogout()">退出登录</button>
+    </div>
 
-            // 只初始化一次
-            if (!window.supabase) {
-                window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            }
+</div>
 
-            // 页面加载时检查用户登录状态
-            checkUserSession();
-        });
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabaseUrl = "https://czispkecvokqsvomquqo.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0";
+const sb = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // 显示登录表单
-        function showLogin() {
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'none';
-        }
+// 页面载入检测登录
+(async function(){
+    const {data:{user}} = await sb.auth.getUser();
+    if(user){
+        showUser();
+        document.getElementById("userMail").innerText = user.email;
+    }
+})();
 
-        // 显示注册表单
-        function showRegister() {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registerForm').style.display = 'block';
-            document.getElementById('dashboard').style.display = 'none';
-        }
+// 切换
+function showLogin(){
+    document.getElementById("loginBox").style.display="block";
+    document.getElementById("regBox").style.display="none";
+    document.getElementById("userBox").style.display="none";
+}
+function showReg(){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("regBox").style.display="block";
+    document.getElementById("userBox").style.display="none";
+}
+function showUser(){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("regBox").style.display="none";
+    document.getElementById("userBox").style.display="block";
+}
 
-        // 显示仪表盘
-        function showDashboard(user) {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            document.getElementById('userEmail').textContent = `当前登录：${user.email}`;
-        }
+// 注册
+async function doReg(){
+    let email = document.getElementById("regEmail").value.trim();
+    let pwd = document.getElementById("regPwd").value.trim();
+    let msg = document.getElementById("regMsg");
+    msg.style.display = "none";
 
-        // 检查用户登录状态
-        async function checkUserSession() {
-            if (!window.supabase) return;
-            const { data: { user } } = await window.supabase.auth.getUser();
-            if (user) {
-                showDashboard(user);
-            } else {
-                showLogin();
-            }
-        }
+    if(!email){msg.className="msg err";msg.innerText="请输入邮箱";return}
+    if(pwd.length<6){msg.className="msg err";msg.innerText="密码至少6位";return}
 
-        // 处理登录
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const messageEl = document.getElementById('loginMessage');
+    const {error} = await sb.auth.signUp({
+        email:email,
+        password:pwd,
+        options:{emailRedirectTo:"https://ddaa.online/login.html"}
+    });
 
-            messageEl.className = 'message';
-            messageEl.textContent = '';
+    if(error){
+        msg.className="msg err";
+        msg.innerText=error.message;
+    }else{
+        msg.className="msg ok";
+        msg.innerText="注册成功！请去邮箱验证";
+    }
+}
 
-            if (!email || !password) {
-                messageEl.className = 'message error';
-                messageEl.textContent = '请填写邮箱和密码';
-                return;
-            }
+// 登录
+async function doLogin(){
+    let email = document.getElementById("loginEmail").value.trim();
+    let pwd = document.getElementById("loginPwd").value.trim();
+    let msg = document.getElementById("loginMsg");
+    msg.style.display = "none";
 
-            const { data, error } = await window.supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
+    const {data,error} = await sb.auth.signInWithPassword({email,pwd});
+    if(error){
+        msg.className="msg err";
+        msg.innerText=error.message;
+    }else{
+        document.getElementById("userMail").innerText = data.user.email;
+        showUser();
+    }
+}
 
-            if (error) {
-                messageEl.className = 'message error';
-                messageEl.textContent = error.message;
-            } else {
-                messageEl.className = 'message success';
-                messageEl.textContent = '登录成功！正在跳转...';
-                setTimeout(() => showDashboard(data.user), 1000);
-            }
-        }
-
-        // 处理注册
-        async function handleRegister() {
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const messageEl = document.getElementById('registerMessage');
-
-            messageEl.className = 'message';
-            messageEl.textContent = '';
-
-            if (!email || !password) {
-                messageEl.className = 'message error';
-                messageEl.textContent = '请填写邮箱和密码';
-                return;
-            }
-
-            if (password.length < 6) {
-                messageEl.className = 'message error';
-                messageEl.textContent = '密码长度至少6位';
-                return;
-            }
-
-            const { data, error } = await window.supabase.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    emailRedirectTo: "https://ddaa.online/login.html"
-                }
-            });
-
-            if (error) {
-                messageEl.className = 'message error';
-                messageEl.textContent = error.message;
-            } else {
-                messageEl.className = 'message success';
-                messageEl.textContent = '注册成功！请前往邮箱点击验证链接';
-            }
-        }
-
-        // 处理退出登录
-        async function handleLogout() {
-            if (!window.supabase) return;
-            await window.supabase.auth.signOut();
-            showLogin();
-        }
-    </script>
+// 退出
+async function doLogout(){
+    await sb.auth.signOut();
+    showLogin();
+}
+</script>
 </body>
 </html>
