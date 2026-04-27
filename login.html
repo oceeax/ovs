@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录系统</title>
+<title>登录系统完整版</title>
 
 <style>
 body{
@@ -12,12 +12,12 @@ body{
     background:#0f172a;
     color:#fff;
     display:flex;
-    align-items:center;
     justify-content:center;
+    align-items:center;
     height:100vh;
 }
 
-.box{
+.container{
     width:360px;
     background:#1e293b;
     padding:25px;
@@ -47,11 +47,25 @@ button{
 
 button:hover{background:#2563eb;}
 
-.hidden{display:none;}
+.secondary{
+    background:#64748b;
+}
 
-.msg{margin-top:10px;font-size:14px;}
+.danger{
+    background:#ef4444;
+}
 
-.dashboard{
+.hidden{
+    display:none;
+}
+
+.msg{
+    margin-top:10px;
+    font-size:14px;
+    color:#fbbf24;
+}
+
+.center{
     text-align:center;
 }
 </style>
@@ -59,33 +73,39 @@ button:hover{background:#2563eb;}
 
 <body>
 
-<div class="box">
+<div class="container">
 
     <!-- 登录 -->
     <div id="loginBox">
-        <h2>登录</h2>
+        <h2 class="center">登录</h2>
+
         <input id="loginEmail" placeholder="邮箱">
         <input id="loginPass" type="password" placeholder="密码">
-        <button onclick="login()">登录</button>
-        <button onclick="showRegister()" style="background:#64748b">去注册</button>
+
+        <button type="button" onclick="login()">登录</button>
+        <button type="button" class="secondary" onclick="showRegister()">去注册</button>
+
         <div id="loginMsg" class="msg"></div>
     </div>
 
     <!-- 注册 -->
     <div id="registerBox" class="hidden">
-        <h2>注册</h2>
+        <h2 class="center">注册</h2>
+
         <input id="regEmail" placeholder="邮箱">
         <input id="regPass" type="password" placeholder="密码">
-        <button onclick="register()">注册</button>
-        <button onclick="showLogin()" style="background:#64748b">去登录</button>
+
+        <button type="button" onclick="register()">注册</button>
+        <button type="button" class="secondary" onclick="showLogin()">去登录</button>
+
         <div id="regMsg" class="msg"></div>
     </div>
 
     <!-- 主页 -->
-    <div id="dashBox" class="hidden dashboard">
+    <div id="dashBox" class="hidden center">
         <h2>登录成功 🎉</h2>
         <p id="userEmail"></p>
-        <button onclick="logout()" style="background:#ef4444">退出登录</button>
+        <button class="danger" onclick="logout()">退出登录</button>
     </div>
 
 </div>
@@ -94,13 +114,28 @@ button:hover{background:#2563eb;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <script>
-// ===== Supabase 初始化 =====
+
+// ===== 初始化 Supabase =====
 const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
 const SUPABASE_KEY = "你的anon key";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
 
-// ===== 页面状态监听（核心）=====
+// ===== 页面加载检查登录状态 =====
+window.onload = async () => {
+    const { data } = await supabase.auth.getSession();
+
+    if (data.session?.user) {
+        showDash(data.session.user);
+    } else {
+        showLogin();
+    }
+};
+
+// ===== 监听登录状态变化（核心）=====
 supabase.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
         showDash(session.user);
@@ -109,35 +144,46 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-// ===== 初始化检测 =====
-window.onload = async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session?.user) {
-        showDash(data.session.user);
-    }
-};
+// ================= UI切换 =================
+function showLogin(){
+    document.getElementById("loginBox").classList.remove("hidden");
+    document.getElementById("registerBox").classList.add("hidden");
+    document.getElementById("dashBox").classList.add("hidden");
+}
 
-// ===== 登录 =====
+function showRegister(){
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("registerBox").classList.remove("hidden");
+    document.getElementById("dashBox").classList.add("hidden");
+}
+
+function showDash(user){
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("registerBox").classList.add("hidden");
+    document.getElementById("dashBox").classList.remove("hidden");
+
+    document.getElementById("userEmail").innerText = user.email;
+}
+
+// ================= 登录 =================
 async function login(){
-    let email = loginEmail.value;
-    let pass = loginPass.value;
+    let email = document.getElementById("loginEmail").value;
+    let pass = document.getElementById("loginPass").value;
 
-    let { data, error } = await supabase.auth.signInWithPassword({
+    let { error } = await supabase.auth.signInWithPassword({
         email,
         password: pass
     });
 
     if(error){
-        loginMsg.innerText = error.message;
-    }else{
-        loginMsg.innerText = "登录成功";
+        document.getElementById("loginMsg").innerText = error.message;
     }
 }
 
-// ===== 注册 =====
+// ================= 注册 =================
 async function register(){
-    let email = regEmail.value;
-    let pass = regPass.value;
+    let email = document.getElementById("regEmail").value;
+    let pass = document.getElementById("regPass").value;
 
     let { error } = await supabase.auth.signUp({
         email,
@@ -145,36 +191,18 @@ async function register(){
     });
 
     if(error){
-        regMsg.innerText = error.message;
+        document.getElementById("regMsg").innerText = error.message;
     }else{
-        regMsg.innerText = "注册成功，请检查邮箱（如开启验证）";
+        document.getElementById("regMsg").innerText =
+        "注册成功，请检查邮箱（如果开启验证）";
     }
 }
 
-// ===== 退出 =====
+// ================= 退出 =================
 async function logout(){
     await supabase.auth.signOut();
 }
 
-// ===== UI切换 =====
-function showLogin(){
-    loginBox.classList.remove("hidden");
-    registerBox.classList.add("hidden");
-    dashBox.classList.add("hidden");
-}
-
-function showRegister(){
-    loginBox.classList.add("hidden");
-    registerBox.classList.remove("hidden");
-    dashBox.classList.add("hidden");
-}
-
-function showDash(user){
-    loginBox.classList.add("hidden");
-    registerBox.classList.add("hidden");
-    dashBox.classList.remove("hidden");
-    userEmail.innerText = user.email;
-}
 </script>
 
 </body>
