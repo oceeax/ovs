@@ -15,6 +15,21 @@
     padding: 0;
     box-sizing: border-box;
 }
+    <!-- Supabase 引入 + 掉线监听 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const sb = supabase.createClient(
+    "https://czispkecvokqsvomquqo.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
+);
+
+// 被别人挤下线 → 自动跳登录页
+sb.auth.onAuthStateChange((event) => {
+  if (event === "signed_out") {
+    location.href = "login.html";
+  }
+});
+</script>
     
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
