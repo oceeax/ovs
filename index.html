@@ -22,6 +22,42 @@ const sb = supabase.createClient(
     "https://czispkecvokqsvomquqo.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
+    // ========== 真正有效 单设备唯一登录 / 全设备互踢 修复版 ==========
+async function kickAllOtherSessions() {
+  // 获取当前用户全部会话
+  const { data: { sessions }, error } = await sb.auth.getSessions();
+  if (error || !sessions) return;
+
+  // 获取本次最新登录的会话ID
+  const { data: { session } } = await sb.auth.getSession();
+  const nowId = session?.id;
+
+  // 遍历删除 所有不是当前的会话
+  for (const item of sessions) {
+    if (item.id !== nowId) {
+      await sb.auth.admin.signOut(item.id);
+    }
+  }
+}
+
+// 拦截登录，登录成功自动踢所有旧设备
+const oldLogin = sb.auth.signInWithPassword;
+sb.auth.signInWithPassword = async function (args) {
+  const res = await oldLogin.apply(this, arguments);
+  if (!res.error) {
+    // 登录成功 → 立刻踢掉电脑/手机/其他浏览器全部旧登录
+    await kickAllOtherSessions();
+  }
+  return res;
+};
+
+// 被挤下线 自动跳转登录页
+sb.auth.onAuthStateChange((state) => {
+  if (state === "signed_out") {
+    location.href = "login.html";
+  }
+});
+// ====================================================
 
 // 被别人挤下线 → 自动跳登录页
 sb.auth.onAuthStateChange((event) => {
