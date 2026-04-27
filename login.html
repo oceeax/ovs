@@ -11,13 +11,13 @@ body{margin:0;background:#0f172a;color:#fff;font-family:system-ui;display:flex;j
 h2{text-align:center;margin-bottom:20px}
 input{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#fff}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer}
-button:disabled{background:#475569;cursor:not-allowed}
-button:hover:not(:disabled){background:#1d4ed8}
-.msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px;text-align:center}
+button:hover{background:#1d4ed8}
+button:disabled{background:#475569;cursor:not-allowed;}
+.msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px}
 .err{background:#7f1d1d;display:block}
 .ok{background:#065f46;display:block}
 .tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px}
-.tip button{background:none;border:none;color:#3b82f6;cursor:pointer;padding:0;margin:0}
+.tip button{background:none;border:none;color:#3b82f6;cursor:pointer}
 .hidden{display:none}
 </style>
 </head>
@@ -29,28 +29,20 @@ button:hover:not(:disabled){background:#1d4ed8}
 <!-- 登录 -->
 <div id="loginBox">
 <h2>登录</h2>
-
 <div id="loginMsg" class="msg"></div>
-
 <input id="loginEmail" placeholder="邮箱">
 <input id="loginPwd" type="password" placeholder="密码">
-
 <button id="loginBtn" onclick="doLogin()">登录</button>
-
 <div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
 </div>
 
 <!-- 注册 -->
 <div id="regBox" class="hidden">
 <h2>注册</h2>
-
 <div id="regMsg" class="msg"></div>
-
 <input id="regEmail" placeholder="邮箱">
 <input id="regPwd" type="password" placeholder="密码">
-
 <button id="regBtn" onclick="doReg()">注册</button>
-
 <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
 </div>
 
@@ -66,7 +58,7 @@ button:hover:not(:disabled){background:#1d4ed8}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// DOM 元素
+// 1. 提前绑定所有DOM
 const loginBox = document.getElementById('loginBox');
 const regBox = document.getElementById('regBox');
 const userBox = document.getElementById('userBox');
@@ -77,34 +69,32 @@ const loginPwd = document.getElementById('loginPwd');
 const regEmail = document.getElementById('regEmail');
 const regPwd = document.getElementById('regPwd');
 const userMail = document.getElementById('userMail');
-const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
 
-// Supabase 配置
-const sb = supabase.createClient(
-    "https://czispkecvokqsvomquqo.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
-);
+// 2. Supabase 配置
+const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0";
 
-// 冷却控制（1分钟=60秒）
-const COOLDOWN = 60;
-let regCooldown = false;
+// 3. 初始化
+let sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 一分钟冷却
+let isRegCoolDown = false;
+const coolTime = 60000;
 
 // 切换
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
     userBox.classList.add("hidden");
-    loginMsg.style.display = "none";
+    regMsg.style.display = "none";
 }
-
 function showReg(){
     loginBox.classList.add("hidden");
     regBox.classList.remove("hidden");
     userBox.classList.add("hidden");
     regMsg.style.display = "none";
 }
-
 function showUser(email){
     loginBox.classList.add("hidden");
     regBox.classList.add("hidden");
@@ -112,12 +102,12 @@ function showUser(email){
     if(email) userMail.innerText = email;
 }
 
-// 注册（带防重复提交+1分钟冷却）
+// 注册
 async function doReg(){
-    // 冷却中直接提示
-    if (regCooldown) {
+    // 冷却拦截
+    if(isRegCoolDown){
         regMsg.className="msg err";
-        regMsg.innerText="请一分钟后再试";
+        regMsg.innerText = "请一分钟后再试";
         return;
     }
 
@@ -136,38 +126,38 @@ async function doReg(){
         return;
     }
 
-    // 防重复提交：禁用按钮
+    // 防止连点
     regBtn.disabled = true;
 
-    const { error } = await sb.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-            emailRedirectTo: "https://ddaa.online/login.html"
-        }
-    });
+    try{
+        const { error } = await sb.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                emailRedirectTo: "https://ddaa.online/login.html"
+            }
+        });
 
-    // 恢复按钮
-    regBtn.disabled = false;
-
-    if(error){
-        // 只有 rate limit 错误提示“请一分钟后再试”，其他错误直接提示原信息
-        if(error.message.includes("rate limit")){
+        if(error){
+            // 超限统一中文提示
+            if(error.message.toLowerCase().includes("rate limit")){
+                regMsg.innerText = "请一分钟后再试";
+                isRegCoolDown = true;
+                setTimeout(()=>{ isRegCoolDown = false; }, coolTime);
+            }else{
+                regMsg.innerText = error.message;
+            }
             regMsg.className="msg err";
-            regMsg.innerText="请一分钟后再试";
-            // 触发1分钟冷却
-            regCooldown = true;
-            setTimeout(() => {
-                regCooldown = false;
-            }, COOLDOWN * 1000);
-        } else {
-            regMsg.className="msg err";
-            regMsg.innerText = error.message;
+        }else{
+            regMsg.className="msg ok";
+            regMsg.innerText="注册成功！请前往邮箱验证";
         }
-    }else{
-        regMsg.className="msg ok";
-        regMsg.innerText="注册成功！请前往邮箱验证";
+    }catch(e){
+        regMsg.className="msg err";
+        regMsg.innerText="请求异常，请稍后重试";
     }
+
+    regBtn.disabled = false;
 }
 
 // 登录
@@ -180,7 +170,6 @@ async function doLogin(){
         email: email,
         password: password
     });
-
     if(error){
         loginMsg.className="msg err";
         loginMsg.innerText = error.message;
@@ -189,13 +178,13 @@ async function doLogin(){
     }
 }
 
-// 退出登录
+// 退出
 async function doLogout(){
     await sb.auth.signOut();
     showLogin();
 }
 
-// 页面加载检测登录状态
+// 自动登录检测
 window.onload = async () => {
     const { data } = await sb.auth.getSession();
     if(data.session?.user){
