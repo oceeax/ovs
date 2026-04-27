@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录系统（带调试提示版）</title>
+<title>稳定登录系统</title>
 
 <style>
 body{
@@ -17,7 +17,7 @@ body{
     height:100vh;
 }
 
-.container{
+.box{
     width:360px;
     background:#1e293b;
     padding:25px;
@@ -47,8 +47,6 @@ button{
 
 button:hover{background:#2563eb;}
 
-.secondary{background:#64748b;}
-
 .hidden{display:none;}
 
 .msg{
@@ -56,209 +54,117 @@ button:hover{background:#2563eb;}
     font-size:14px;
     padding:8px;
     border-radius:6px;
+    background:#1e40af;
 }
-
-.success{background:#065f46;}
-.error{background:#7f1d1d;}
-.warn{background:#78350f;}
-.info{background:#1e40af;}
-
-.center{text-align:center;}
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="box">
 
     <!-- 登录 -->
     <div id="loginBox">
-        <h2 class="center">登录</h2>
+        <h2>登录</h2>
 
-        <input id="loginEmail" placeholder="邮箱">
-        <input id="loginPass" type="password" placeholder="密码">
+        <input id="email" placeholder="邮箱">
+        <input id="pass" type="password" placeholder="密码">
 
-        <button id="btnLogin" type="button">登录</button>
-        <button id="btnToRegister" type="button" class="secondary">去注册</button>
+        <button id="loginBtn">登录</button>
+        <button id="toReg">去注册</button>
 
-        <div id="loginMsg" class="msg info">等待操作...</div>
+        <div id="msg" class="msg">等待操作...</div>
     </div>
 
     <!-- 注册 -->
-    <div id="registerBox" class="hidden">
-        <h2 class="center">注册</h2>
+    <div id="regBox" class="hidden">
+        <h2>注册</h2>
 
-        <input id="regEmail" placeholder="邮箱">
-        <input id="regPass" type="password" placeholder="密码">
+        <input id="remail" placeholder="邮箱">
+        <input id="rpass" type="password" placeholder="密码">
 
-        <button id="btnRegister" type="button">注册</button>
-        <button id="btnToLogin" type="button" class="secondary">去登录</button>
+        <button id="regBtn">注册</button>
+        <button id="toLogin">去登录</button>
 
-        <div id="regMsg" class="msg info">等待操作...</div>
+        <div id="msg2" class="msg">等待操作...</div>
     </div>
 
-    <!-- 主页 -->
-    <div id="dashBox" class="hidden center">
+    <!-- 成功 -->
+    <div id="dashBox" class="hidden">
         <h2>登录成功 🎉</h2>
-        <p id="userEmail"></p>
-        <button id="btnLogout" class="secondary">退出登录</button>
+        <p id="user"></p>
+        <button id="logoutBtn">退出</button>
     </div>
 
 </div>
 
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- ⭐ 稳定CDN（重点） -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script>
 
-// ===================== 安全初始化检测 =====================
+// ===== 检查SDK =====
 if(!window.supabase){
-    alert("❌ Supabase SDK未加载，页面无法运行！");
+    alert("❌ Supabase未加载成功，请检查网络或CDN");
 }
 
-// ===================== 初始化 =====================
-const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
-const SUPABASE_KEY = "你的anon key";
+// ===== 初始化 =====
+const supabase = window.supabase.createClient(
+    "https://czispkecvokqsvomquqo.supabase.co",
+    "你的anon key"
+);
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ===================== UI工具 =====================
-function msg(id, text, type="info"){
-    const el = document.getElementById(id);
-    el.className = "msg " + type;
-    el.innerText = text;
-}
-
-// ===================== 页面切换 =====================
+// ===== UI =====
 function showLogin(){
-    console.log("切换：登录页面");
-
-    loginBox.style.display = "block";
-    registerBox.style.display = "none";
-    dashBox.style.display = "none";
-
-    msg("loginMsg","已进入登录页面","info");
+    loginBox.classList.remove("hidden");
+    regBox.classList.add("hidden");
+    dashBox.classList.add("hidden");
 }
 
-function showRegister(){
-    console.log("切换：注册页面");
-
-    loginBox.style.display = "none";
-    registerBox.style.display = "block";
-    dashBox.style.display = "none";
-
-    msg("regMsg","已进入注册页面","info");
+function showReg(){
+    loginBox.classList.add("hidden");
+    regBox.classList.remove("hidden");
+    dashBox.classList.add("hidden");
 }
 
 function showDash(user){
-    loginBox.style.display = "none";
-    registerBox.style.display = "none";
-    dashBox.style.display = "block";
-
-    userEmail.innerText = "当前用户：" + user.email;
+    loginBox.classList.add("hidden");
+    regBox.classList.add("hidden");
+    dashBox.classList.remove("hidden");
+    user.innerText = user.email;
 }
 
-// ===================== 登录 =====================
-async function login(){
-    try{
-        let email = loginEmail.value;
-        let pass = loginPass.value;
+// ===== 登录 =====
+loginBtn.onclick = async () => {
+    let { error } = await supabase.auth.signInWithPassword({
+        email: email.value,
+        password: pass.value
+    });
 
-        if(!email || !pass){
-            msg("loginMsg","❌ 请填写完整信息","error");
-            return;
-        }
+    msg.innerText = error ? "❌ "+error.message : "✔ 登录成功";
+};
 
-        msg("loginMsg","正在登录...","warn");
+// ===== 注册 =====
+regBtn.onclick = async () => {
+    let { error } = await supabase.auth.signUp({
+        email: remail.value,
+        password: rpass.value
+    });
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password: pass
-        });
+    msg2.innerText = error ? "❌ "+error.message : "✔ 注册成功";
+};
 
-        if(error){
-            msg("loginMsg","❌ 登录失败："+error.message,"error");
-            return;
-        }
+// ===== 切换 =====
+toReg.onclick = showReg;
+toLogin.onclick = showLogin;
 
-        msg("loginMsg","✔ 登录成功","success");
-
-    }catch(e){
-        msg("loginMsg","❌ 未知错误","error");
-        console.error(e);
-    }
-}
-
-// ===================== 注册 =====================
-async function register(){
-    try{
-        let email = regEmail.value;
-        let pass = regPass.value;
-
-        if(!email || !pass){
-            msg("regMsg","❌ 信息不完整","error");
-            return;
-        }
-
-        msg("regMsg","正在注册...","warn");
-
-        const { error } = await supabase.auth.signUp({
-            email,
-            password: pass
-        });
-
-        if(error){
-            msg("regMsg","❌ 注册失败："+error.message,"error");
-            return;
-        }
-
-        msg("regMsg","✔ 注册成功，请查邮箱验证","success");
-
-    }catch(e){
-        msg("regMsg","❌ 系统错误","error");
-    }
-}
-
-// ===================== 退出 =====================
-async function logout(){
+// ===== 退出 =====
+logoutBtn.onclick = async () => {
     await supabase.auth.signOut();
     showLogin();
-}
+};
 
-// ===================== 事件绑定（关键稳定） =====================
-document.addEventListener("DOMContentLoaded", () => {
-
-    const loginBox = document.getElementById("loginBox");
-    const registerBox = document.getElementById("registerBox");
-    const dashBox = document.getElementById("dashBox");
-
-    // 按钮绑定
-    btnLogin.addEventListener("click", login);
-    btnRegister.addEventListener("click", register);
-    btnLogout.addEventListener("click", logout);
-
-    btnToRegister.addEventListener("click", () => {
-        console.log("点击：去注册");
-        showRegister();
-    });
-
-    btnToLogin.addEventListener("click", () => {
-        console.log("点击：去登录");
-        showLogin();
-    });
-
-});
-
-// ===================== 状态监听 =====================
-supabase.auth.onAuthStateChange((event, session) => {
-    if(session?.user){
-        showDash(session.user);
-    }else{
-        showLogin();
-    }
-});
-
-// ===================== 初始化检测 =====================
+// ===== 状态检测 =====
 window.onload = async () => {
     const { data } = await supabase.auth.getSession();
 
