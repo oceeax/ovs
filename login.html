@@ -86,9 +86,13 @@
             font-size: 14px;
             color: #94a3b8;
         }
-        .auth-switch a {
+        .auth-switch button {
+            background: none;
+            border: none;
             color: #3b82f6;
-            text-decoration: none;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
         }
         .message {
             margin: 16px 0;
@@ -127,7 +131,7 @@
 </head>
 <body>
     <div class="auth-container" id="authForm">
-        <!-- 登录/注册表单 -->
+        <!-- 登录表单 -->
         <div id="loginForm">
             <div class="auth-header">
                 <h1>欢迎回来</h1>
@@ -144,7 +148,7 @@
             </div>
             <button class="btn btn-primary" onclick="handleLogin()">登录</button>
             <div class="auth-switch">
-                还没有账号？ <a href="#" onclick="showRegister()">立即注册</a>
+                还没有账号？<button onclick="showRegister()">立即注册</button>
             </div>
         </div>
 
@@ -165,7 +169,7 @@
             </div>
             <button class="btn btn-primary" onclick="handleRegister()">注册</button>
             <div class="auth-switch">
-                已有账号？ <a href="#" onclick="showLogin()">立即登录</a>
+                已有账号？<button onclick="showLogin()">立即登录</button>
             </div>
         </div>
 
@@ -270,7 +274,6 @@
                 email: email,
                 password: password,
                 options: {
-                    // 已配置为你的登录页地址
                     emailRedirectTo: "https://ddaa.online/login.html"
                 }
             });
