@@ -120,6 +120,7 @@ async function doReg(){
     }
 }
 
+// 重点修改：登录成功强制跳转index.html
 async function doLogin(){
     let e = loginEmail.value.trim();
     let p = loginPwd.value.trim();
@@ -127,6 +128,7 @@ async function doLogin(){
     if(!e){loginMsg.className="msg err";loginMsg.innerText="请输入邮箱";return;}
     if(!p){loginMsg.className="msg err";loginMsg.innerText="请输入密码";return;}
     loginBtn.disabled = true;
+
     try{
         const {data,error} = await sb.auth.signInWithPassword({email:e,password:p});
         if(error){
@@ -135,17 +137,19 @@ async function doLogin(){
         }else{
             loginMsg.className="msg ok";
             loginMsg.innerText="登录成功，正在跳转...";
+            showUser(data.user.email);
+
+            // 强制跳转：1秒后跳index.html
             setTimeout(()=>{
-                showUser(data.user.email);
-                setTimeout(()=>{
-                    window.location.href="index.html";
-                },1000);
-            },500);
+                // 用绝对路径+相对路径双保险
+                window.location.replace("index.html");
+            },1000);
         }
     }catch{
         loginMsg.className="msg err";
         loginMsg.innerText="请求异常，请稍后重试";
     }
+
     loginBtn.disabled = false;
 }
 
@@ -154,12 +158,13 @@ async function doLogout(){
     showLogin();
 }
 
+// 页面加载时，已登录状态直接跳转
 window.onload = async ()=>{
     const {data} = await sb.auth.getSession();
     if(data.session?.user){
         showUser(data.session.user.email);
         setTimeout(()=>{
-            window.location.href="index.html";
+            window.location.replace("index.html");
         },1000);
     }
 };
