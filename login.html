@@ -28,28 +28,20 @@ button:hover{background:#1d4ed8}
 <!-- 登录 -->
 <div id="loginBox">
 <h2>登录</h2>
-
 <div id="loginMsg" class="msg"></div>
-
 <input id="loginEmail" placeholder="邮箱">
 <input id="loginPwd" type="password" placeholder="密码">
-
 <button onclick="doLogin()">登录</button>
-
 <div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
 </div>
 
 <!-- 注册 -->
 <div id="regBox" class="hidden">
 <h2>注册</h2>
-
 <div id="regMsg" class="msg"></div>
-
 <input id="regEmail" placeholder="邮箱">
 <input id="regPwd" type="password" placeholder="密码">
-
 <button onclick="doReg()">注册</button>
-
 <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
 </div>
 
@@ -62,11 +54,10 @@ button:hover{background:#1d4ed8}
 
 </div>
 
-<!-- CDN稳定版 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// 元素全局绑定（修复dom未获取报错）
+// 1. 提前绑定所有DOM
 const loginBox = document.getElementById('loginBox');
 const regBox = document.getElementById('regBox');
 const userBox = document.getElementById('userBox');
@@ -78,14 +69,25 @@ const regEmail = document.getElementById('regEmail');
 const regPwd = document.getElementById('regPwd');
 const userMail = document.getElementById('userMail');
 
-// Supabase 完整配置（已填你的信息）
+// 2. Supabase 配置
 const SUPABASE_URL = "https://czispkecvokqsvomquqo.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0";
 
-// 初始化客户端
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 捕获全局所有JS错误
+window.onerror = function(msg,url,line){
+    alert("JS错误："+msg+"\n行号："+line);
+}
 
-// 切换表单
+// 3. 初始化检测
+let sb = null;
+try{
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    alert("✅ Supabase 初始化成功");
+}catch(e){
+    alert("❌ Supabase 初始化失败："+e.message);
+}
+
+// 切换
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
@@ -95,6 +97,7 @@ function showReg(){
     loginBox.classList.add("hidden");
     regBox.classList.remove("hidden");
     userBox.classList.add("hidden");
+    alert("✅ 已打开注册页面");
 }
 function showUser(email){
     loginBox.classList.add("hidden");
@@ -103,37 +106,53 @@ function showUser(email){
     if(email) userMail.innerText = email;
 }
 
-// 注册
+// 注册【全程弹窗提示】
 async function doReg(){
+    alert("🟢 注册按钮已点击，开始执行");
+
     let email = regEmail.value.trim();
     let password = regPwd.value.trim();
     regMsg.style.display = "none";
 
+    alert("填写邮箱："+email);
+    alert("填写密码长度："+password.length);
+
+    // 非空校验
     if(!email){
         regMsg.className="msg err";
         regMsg.innerText="请输入邮箱";
+        alert("🔴 错误：未填邮箱");
         return;
     }
     if(password.length < 6){
         regMsg.className="msg err";
         regMsg.innerText="密码至少6位";
+        alert("🔴 错误：密码不足6位");
         return;
     }
 
-    const { error } = await sb.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-            emailRedirectTo: "https://ddaa.online/login.html"
-        }
-    });
+    alert("🟢 开始请求Supabase注册接口");
 
-    if(error){
-        regMsg.className="msg err";
-        regMsg.innerText = error.message;
-    }else{
-        regMsg.className="msg ok";
-        regMsg.innerText="注册成功！请前往邮箱验证";
+    try{
+        const { error } = await sb.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                emailRedirectTo: "https://ddaa.online/login.html"
+            }
+        });
+
+        if(error){
+            alert("🔴 注册接口返回错误："+error.message);
+            regMsg.className="msg err";
+            regMsg.innerText = error.message;
+        }else{
+            alert("🟢 注册请求成功！请去邮箱收验证邮件");
+            regMsg.className="msg ok";
+            regMsg.innerText="注册成功！请前往邮箱验证";
+        }
+    }catch(e){
+        alert("🔴 请求异常报错："+e.message);
     }
 }
 
@@ -143,30 +162,37 @@ async function doLogin(){
     let password = loginPwd.value.trim();
     loginMsg.style.display = "none";
 
-    const { data, error } = await sb.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
-
-    if(error){
-        loginMsg.className="msg err";
-        loginMsg.innerText = error.message;
-    }else{
-        showUser(data.user.email);
+    try{
+        const { data, error } = await sb.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+        if(error){
+            loginMsg.className="msg err";
+            loginMsg.innerText = error.message;
+        }else{
+            showUser(data.user.email);
+        }
+    }catch(e){
+        alert("登录报错："+e.message);
     }
 }
 
-// 退出登录
+// 退出
 async function doLogout(){
     await sb.auth.signOut();
     showLogin();
 }
 
-// 页面加载检测登录状态
+// 页面加载检测登录
 window.onload = async () => {
-    const { data } = await sb.auth.getSession();
-    if(data.session?.user){
-        showUser(data.session.user.email);
+    try{
+        const { data } = await sb.auth.getSession();
+        if(data.session?.user){
+            showUser(data.session.user.email);
+        }
+    }catch(e){
+        console.log("登录检测失败",e);
     }
 };
 </script>
