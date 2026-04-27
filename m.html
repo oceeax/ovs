@@ -1,5 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+  <!-- 全局访问拦截 -->
+<script>
+if(!localStorage.getItem("auth_ok")){
+    location.href = "/h/h8/j9/js/test.html";
+}
+</script>
+  
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
