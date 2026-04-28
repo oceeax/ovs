@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录系统</title>
+<title>稳定登录系统</title>
 
 <style>
 body{
@@ -44,9 +44,7 @@ button{
     color:#fff;
     cursor:pointer;
 }
-button:disabled{
-    background:#475569;
-}
+button:disabled{background:#475569}
 
 .msg{
     padding:10px;
@@ -54,7 +52,6 @@ button:disabled{
     margin-top:10px;
     text-align:center;
     display:none;
-    font-size:14px;
 }
 .err{background:#7f1d1d}
 .ok{background:#065f46}
@@ -85,7 +82,7 @@ button:disabled{
     <div id="loginMsg" class="msg"></div>
     <input id="loginEmail" placeholder="邮箱">
     <input id="loginPwd" type="password" placeholder="密码">
-    <button onclick="login()">登录</button>
+    <button id="loginBtn" onclick="login()">登录</button>
 
     <div class="tip">
         <span onclick="showReg()">注册</span>
@@ -111,7 +108,7 @@ button:disabled{
 <div id="okBox" class="hidden" style="text-align:center">
     <h2>登录成功</h2>
     <p id="info" style="color:#94a3b8"></p>
-    <p id="retry" style="color:#f87171;font-size:13px;margin-top:10px;"></p>
+    <p id="jumpTip" style="color:#94a3b8;font-size:13px;margin-top:10px;">正在跳转...</p>
 </div>
 
 </div>
@@ -119,7 +116,7 @@ button:disabled{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-// 🔥 你的跳转地址（保持不变）
+// 🔥 你的目标页面（不变）
 const TARGET = "/h/h8/j9/jw/sd.html";
 
 // Supabase
@@ -133,7 +130,7 @@ const loginBox = document.getElementById("loginBox");
 const regBox = document.getElementById("regBox");
 const okBox = document.getElementById("okBox");
 
-function msg(el,type,text){
+function showMsg(el,type,text){
     el.className = "msg " + type;
     el.innerText = text;
     el.style.display = "block";
@@ -156,33 +153,34 @@ function showOK(email){
     regBox.classList.add("hidden");
     okBox.classList.remove("hidden");
     document.getElementById("info").innerText = email;
-    jump();
+
+    safeJump();
 }
 
-// 🔥 跳转逻辑（核心稳定版）
-let count = 0;
-function jump(){
+// ✅ 稳定跳转（无死循环版）
+function safeJump(){
+    // 主跳转
     window.location.href = TARGET;
 
-    let t = setInterval(()=>{
-        count++;
+    // 备用跳转（防某些浏览器拦截）
+    setTimeout(()=>{
+        window.location.replace(TARGET);
+    },1200);
 
-        // 已离开页面 = 成功
-        if(!location.href.includes("login")){
-            clearInterval(t);
-        }
+    // 兜底提示（不再刷新）
+    setTimeout(()=>{
+        document.getElementById("jumpTip").innerText = "若未跳转，请点击这里";
+        
+        let a = document.createElement("a");
+        a.href = TARGET;
+        a.innerText = "手动进入";
+        a.style.color = "#3b82f6";
+        a.style.display = "block";
+        a.style.marginTop = "10px";
 
-        if(count >= 3){
-            clearInterval(t);
-            document.getElementById("retry").innerText = "跳转失败，返回登录";
-            localStorage.removeItem("ok");
-            setTimeout(showLogin,1500);
-        }else{
-            document.getElementById("retry").innerText = `跳转失败，重试 ${count}/3`;
-            location.reload();
-        }
+        document.getElementById("okBox").appendChild(a);
 
-    },2000);
+    },2500);
 }
 
 // 注册
@@ -190,18 +188,20 @@ async function register(){
     let e = regEmail.value.trim();
     let p = regPwd.value.trim();
 
-    if(!e) return msg(regMsg,"err","请输入邮箱");
-    if(p.length < 6) return msg(regMsg,"err","密码至少6位");
+    if(!e) return showMsg(regMsg,"err","请输入邮箱");
+    if(p.length < 6) return showMsg(regMsg,"err","密码至少6位");
 
     try{
         const {error} = await sb.auth.signUp({email:e,password:p});
+
         if(error){
-            msg(regMsg,"err",error.message);
+            showMsg(regMsg,"err",error.message);
         }else{
-            msg(regMsg,"ok","注册成功，请验证邮箱");
+            showMsg(regMsg,"ok","注册成功，请查邮箱验证");
         }
+
     }catch{
-        msg(regMsg,"err","网络异常");
+        showMsg(regMsg,"err","网络异常");
     }
 }
 
@@ -210,30 +210,38 @@ async function login(){
     let e = loginEmail.value.trim();
     let p = loginPwd.value.trim();
 
-    if(!e) return msg(loginMsg,"err","请输入邮箱");
-    if(!p) return msg(loginMsg,"err","请输入密码");
+    if(!e) return showMsg(loginMsg,"err","请输入邮箱");
+    if(!p) return showMsg(loginMsg,"err","请输入密码");
+
+    loginBtn.disabled = true;
 
     try{
         const {data,error} = await sb.auth.signInWithPassword({email:e,password:p});
 
         if(error){
-            msg(loginMsg,"err","账号或密码错误");
+            showMsg(loginMsg,"err","账号或密码错误");
         }else{
-            localStorage.setItem("ok","1");
+            localStorage.setItem("login_ok","1");
             showOK(data.user.email);
         }
 
     }catch{
-        msg(loginMsg,"err","服务器异常");
+        showMsg(loginMsg,"err","服务器异常");
     }
+
+    loginBtn.disabled = false;
 }
 
-// 自动登录（关键）
+// 自动登录
 window.onload = async ()=>{
-    const {data} = await sb.auth.getSession();
+    try{
+        const {data} = await sb.auth.getSession();
 
-    if(data.session || localStorage.getItem("ok")){
-        showOK(data.session?.user?.email || "已登录");
+        if(data.session || localStorage.getItem("login_ok")){
+            showOK(data.session?.user?.email || "已登录");
+        }
+    }catch{
+        // 忽略错误，避免卡死
     }
 };
 
