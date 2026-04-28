@@ -17,6 +17,18 @@ button:disabled{background:#475569;cursor:not-allowed;}
 .tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px}
 .tip button{background:none;border:none;color:#3b82f6;cursor:pointer}
 .hidden{display:none}
+/* 浏览器同款刷新按钮 */
+.refresh-btn{
+    width:auto;
+    padding:6px 16px;
+    margin-top:15px;
+    background:#475569;
+    border-radius:4px;
+    font-size:14px;
+}
+.refresh-btn:active{
+    background:#64748b;
+}
 </style>
 </head>
 <body>
@@ -42,12 +54,14 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
     </div>
 
-    <!-- 成功 -->
+    <!-- 成功页面：加了刷新按钮 -->
     <div id="userBox" class="hidden" style="text-align:center">
         <h2>登录成功</h2>
         <p id="userMail" style="color:#94a3b8"></p>
         <p style="color:#94a3b8;font-size:14px;margin-top:10px">正在跳转到首页...</p>
         <p id="retryText" style="color:#f87171;font-size:13px;margin-top:12px;"></p>
+        <!-- 手动刷新按钮 -->
+        <button class="refresh-btn" onclick="location.reload()">🔄 刷新页面</button>
     </div>
 </div>
 
@@ -67,7 +81,7 @@ const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
 const retryText = document.getElementById('retryText');
 
-// 目标主页地址
+// 目标主页
 const targetUrl = "/h/h8/j9/jw/sd.html";
 let reloadTimes = 0;
 const maxTry = 3;
@@ -77,7 +91,7 @@ const sb = supabase.createClient(
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
-// 单设备互踢 保留
+// 单设备互踢
 async function kickAllOtherSessions(){const{data:{sessions}}=await sb.auth.getSessions();if(!sessions)return;const{data:{session}}=await sb.auth.getSession();const cid=session?.id;for(let s of sessions)if(s.id!==cid)await sb.auth.signOut({scope:"others"})}
 sb.auth.onAuthStateChange(e=>{if(e==="signed_out")location.href="login.html"});
 
@@ -89,26 +103,20 @@ function showUser(email){
     regBox.classList.add("hidden");
     userBox.classList.remove("hidden");
     userMail.innerText = email || "";
-    // 执行跳转+重试刷新
     startJumpTask();
 }
 
-// 核心：跳转失败自动刷新3次
+// 自动跳转+3次自动刷新
 function startJumpTask(){
-    // 先尝试跳转主页
-    let jumpWin = window.open(targetUrl,"_self");
-    // 延迟检测，如果还在当前页 = 跳转失败
+    window.location.href = targetUrl;
     setTimeout(()=>{
-        // 判定：仍停留在登录页 → 刷新
         if(location.pathname.indexOf("login.html")!==-1){
             reloadTimes++;
             if(reloadTimes <= maxTry){
                 retryText.innerText = `跳转失败，自动刷新 ${reloadTimes}/${maxTry}`;
-                setTimeout(()=>{
-                    location.reload();
-                },1500);
+                setTimeout(()=>location.reload(),1500);
             }else{
-                retryText.innerText = "已重试3次，请手动进入首页";
+                retryText.innerText = "已重试3次，请手动点击刷新";
             }
         }
     },1800);
@@ -150,7 +158,7 @@ async function doLogin(){
     loginBtn.disabled=false;
 }
 
-// 打开页面已登录自动进入成功页+触发重试
+// 自动登录检测
 window.onload = async () => {
     const {data} = await sb.auth.getSession();
     if(data.session?.user){
