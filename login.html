@@ -6,7 +6,7 @@
 <title>稳定登录系统</title>
 <style>
 body{margin:0;background:#0f172a;color:#fff;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh}
-.box{width:380px;background:#1e293b;padding:28px;border-radius:12px;position:relative}
+.box{width:380px;background:#1e293b;padding:28px;border-radius:12px}
 h2{text-align:center;margin-bottom:20px}
 input{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#fff}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer}
@@ -14,39 +14,16 @@ button:disabled{background:#475569;cursor:not-allowed;}
 .msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px;text-align:center}
 .err{background:#7f1d1d;display:block}
 .ok{background:#065f46;display:block}
-.tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px}
-.tip button{background:none;border:none;color:#3b82f6;cursor:pointer}
+.tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px;display:flex;justify-content:center;gap:12px;align-items:center}
+.tip button{background:none;border:none;color:#3b82f6;cursor:pointer;padding:0;margin:0;width:auto}
+/* 刷新按钮样式统一美化 */
+.refresh-btn{
+    color:#94a3b8 !important;
+}
 .hidden{display:none}
-
-/* 全局固定刷新按钮 永久显示 */
-.fixed-refresh{
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    background: #334155;
-    border: none;
-    color: #fff;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    margin: 0;
-}
-.fixed-refresh:active{
-    background: #475569;
-}
 </style>
 </head>
 <body>
-
-<!-- 全局固定刷新按钮 全程显示 -->
-<button class="fixed-refresh" onclick="location.reload()">🔄</button>
 
 <div class="box">
     <!-- 登录 -->
@@ -56,7 +33,12 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <input id="loginEmail" placeholder="邮箱">
         <input id="loginPwd" type="password" placeholder="密码">
         <button id="loginBtn" onclick="doLogin()">登录</button>
-        <div class="tip">没有账号？ <button onclick="showReg()">去注册</button></div>
+        <!-- 去注册 + 刷新 同行并排 -->
+        <div class="tip">
+            <span>没有账号？</span>
+            <button onclick="showReg()">去注册</button>
+            <button class="refresh-btn" onclick="location.reload()">刷新</button>
+        </div>
     </div>
 
     <!-- 注册 -->
@@ -66,7 +48,11 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <input id="regEmail" placeholder="邮箱">
         <input id="regPwd" type="password" placeholder="密码">
         <button id="regBtn" onclick="doReg()">注册</button>
-        <div class="tip">已有账号？ <button onclick="showLogin()">去登录</button></div>
+        <div class="tip">
+            <span>已有账号？</span>
+            <button onclick="showLogin()">去登录</button>
+            <button class="refresh-btn" onclick="location.reload()">刷新</button>
+        </div>
     </div>
 
     <!-- 成功 -->
@@ -129,7 +115,7 @@ function startJumpTask(){
                 retryText.innerText = `跳转失败，自动刷新 ${reloadTimes}/${maxTry}`;
                 setTimeout(()=>location.reload(),1500);
             }else{
-                retryText.innerText = "已重试3次，请手动点击右上角刷新";
+                retryText.innerText = "已重试3次，请手动点击刷新";
             }
         }
     },1800);
