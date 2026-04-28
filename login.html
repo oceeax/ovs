@@ -2,21 +2,75 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>稳定登录系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录系统</title>
 
 <style>
-body{margin:0;background:#0f172a;color:#fff;font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh}
-.box{width:380px;background:#1e293b;padding:28px;border-radius:12px}
-h2{text-align:center;margin-bottom:20px}
-input{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#fff}
-button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer}
-button:disabled{background:#475569;cursor:not-allowed;}
-.msg{padding:10px;border-radius:6px;margin-top:10px;font-size:14px;text-align:center;display:none}
+body{
+    margin:0;
+    background:#0f172a;
+    color:#fff;
+    font-family:system-ui;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+.box{
+    width:360px;
+    background:#1e293b;
+    padding:25px;
+    border-radius:12px;
+}
+h2{text-align:center;margin-bottom:15px}
+
+input{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border-radius:6px;
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#fff;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:none;
+    border-radius:6px;
+    background:#2563eb;
+    color:#fff;
+    cursor:pointer;
+}
+button:disabled{
+    background:#475569;
+}
+
+.msg{
+    padding:10px;
+    border-radius:6px;
+    margin-top:10px;
+    text-align:center;
+    display:none;
+    font-size:14px;
+}
 .err{background:#7f1d1d}
 .ok{background:#065f46}
-.tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px;display:flex;justify-content:center;gap:16px;align-items:center}
-.tip button{background:none;border:none;color:#3b82f6;cursor:pointer}
+
+.tip{
+    text-align:center;
+    margin-top:10px;
+    font-size:14px;
+    color:#94a3b8;
+}
+.tip span{
+    cursor:pointer;
+    color:#3b82f6;
+    margin:0 6px;
+}
+
 .hidden{display:none}
 </style>
 </head>
@@ -31,11 +85,11 @@ button:disabled{background:#475569;cursor:not-allowed;}
     <div id="loginMsg" class="msg"></div>
     <input id="loginEmail" placeholder="邮箱">
     <input id="loginPwd" type="password" placeholder="密码">
-    <button id="loginBtn" onclick="doLogin()">登录</button>
+    <button onclick="login()">登录</button>
+
     <div class="tip">
-        <span>没有账号？</span>
-        <button onclick="showReg()">注册</button>
-        <button onclick="location.reload()">刷新</button>
+        <span onclick="showReg()">注册</span>
+        <span onclick="location.reload()">刷新</span>
     </div>
 </div>
 
@@ -45,20 +99,19 @@ button:disabled{background:#475569;cursor:not-allowed;}
     <div id="regMsg" class="msg"></div>
     <input id="regEmail" placeholder="邮箱">
     <input id="regPwd" type="password" placeholder="密码">
-    <button id="regBtn" onclick="doReg()">注册</button>
+    <button onclick="register()">注册</button>
+
     <div class="tip">
-        <span>已有账号？</span>
-        <button onclick="showLogin()">登录</button>
-        <button onclick="location.reload()">刷新</button>
+        <span onclick="showLogin()">登录</span>
+        <span onclick="location.reload()">刷新</span>
     </div>
 </div>
 
 <!-- 成功 -->
-<div id="userBox" class="hidden" style="text-align:center">
+<div id="okBox" class="hidden" style="text-align:center">
     <h2>登录成功</h2>
-    <p id="userMail" style="color:#94a3b8"></p>
-    <p style="color:#94a3b8;font-size:14px;margin-top:10px">正在跳转...</p>
-    <p id="retryText" style="color:#f87171;font-size:13px;margin-top:12px;"></p>
+    <p id="info" style="color:#94a3b8"></p>
+    <p id="retry" style="color:#f87171;font-size:13px;margin-top:10px;"></p>
 </div>
 
 </div>
@@ -66,30 +119,21 @@ button:disabled{background:#475569;cursor:not-allowed;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-const targetUrl = "/h/h8/j9/jw/sd.html";
-let tryCount = 0;
-const MAX = 3;
+// 🔥 你的跳转地址（保持不变）
+const TARGET = "/h/h8/j9/jw/sd.html";
 
+// Supabase
 const sb = supabase.createClient(
-"你的supabase地址",
-"你的anon key"
+    "你的supabase地址",
+    "你的anon key"
 );
 
 // UI
-const loginBox = document.getElementById('loginBox');
-const regBox = document.getElementById('regBox');
-const userBox = document.getElementById('userBox');
+const loginBox = document.getElementById("loginBox");
+const regBox = document.getElementById("regBox");
+const okBox = document.getElementById("okBox");
 
-const loginMsg = document.getElementById('loginMsg');
-const regMsg = document.getElementById('regMsg');
-
-const loginBtn = document.getElementById('loginBtn');
-const regBtn = document.getElementById('regBtn');
-
-const retryText = document.getElementById('retryText');
-const userMail = document.getElementById('userMail');
-
-function showMsg(el,type,text){
+function msg(el,type,text){
     el.className = "msg " + type;
     el.innerText = text;
     el.style.display = "block";
@@ -98,43 +142,43 @@ function showMsg(el,type,text){
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
-    userBox.classList.add("hidden");
+    okBox.classList.add("hidden");
 }
 
 function showReg(){
     loginBox.classList.add("hidden");
     regBox.classList.remove("hidden");
-    userBox.classList.add("hidden");
+    okBox.classList.add("hidden");
 }
 
-function showUser(email){
+function showOK(email){
     loginBox.classList.add("hidden");
     regBox.classList.add("hidden");
-    userBox.classList.remove("hidden");
-    userMail.innerText = email;
-    jumpLoop();
+    okBox.classList.remove("hidden");
+    document.getElementById("info").innerText = email;
+    jump();
 }
 
-// 🔥 核心：循环跳转检测
-function jumpLoop(){
-    window.location.href = targetUrl;
+// 🔥 跳转逻辑（核心稳定版）
+let count = 0;
+function jump(){
+    window.location.href = TARGET;
 
-    let timer = setInterval(()=>{
-        tryCount++;
+    let t = setInterval(()=>{
+        count++;
 
-        // 如果已经离开当前页面，说明成功
+        // 已离开页面 = 成功
         if(!location.href.includes("login")){
-            clearInterval(timer);
+            clearInterval(t);
         }
 
-        if(tryCount >= MAX){
-            clearInterval(timer);
-            retryText.innerText = "跳转失败，已返回登录页";
-            setTimeout(()=>{
-                showLogin();
-            },1500);
+        if(count >= 3){
+            clearInterval(t);
+            document.getElementById("retry").innerText = "跳转失败，返回登录";
+            localStorage.removeItem("ok");
+            setTimeout(showLogin,1500);
         }else{
-            retryText.innerText = `跳转失败，重试 ${tryCount}/${MAX}`;
+            document.getElementById("retry").innerText = `跳转失败，重试 ${count}/3`;
             location.reload();
         }
 
@@ -142,61 +186,54 @@ function jumpLoop(){
 }
 
 // 注册
-async function doReg(){
+async function register(){
     let e = regEmail.value.trim();
     let p = regPwd.value.trim();
 
-    if(!e) return showMsg(regMsg,"err","请输入邮箱");
-    if(p.length < 6) return showMsg(regMsg,"err","密码至少6位");
-
-    regBtn.disabled = true;
+    if(!e) return msg(regMsg,"err","请输入邮箱");
+    if(p.length < 6) return msg(regMsg,"err","密码至少6位");
 
     try{
         const {error} = await sb.auth.signUp({email:e,password:p});
         if(error){
-            showMsg(regMsg,"err",error.message);
+            msg(regMsg,"err",error.message);
         }else{
-            showMsg(regMsg,"ok","注册成功，请查邮箱验证");
+            msg(regMsg,"ok","注册成功，请验证邮箱");
         }
     }catch{
-        showMsg(regMsg,"err","网络异常");
+        msg(regMsg,"err","网络异常");
     }
-
-    regBtn.disabled = false;
 }
 
 // 登录
-async function doLogin(){
+async function login(){
     let e = loginEmail.value.trim();
     let p = loginPwd.value.trim();
 
-    if(!e) return showMsg(loginMsg,"err","请输入邮箱");
-    if(!p) return showMsg(loginMsg,"err","请输入密码");
-
-    loginBtn.disabled = true;
+    if(!e) return msg(loginMsg,"err","请输入邮箱");
+    if(!p) return msg(loginMsg,"err","请输入密码");
 
     try{
         const {data,error} = await sb.auth.signInWithPassword({email:e,password:p});
 
         if(error){
-            showMsg(loginMsg,"err","账号或密码错误");
+            msg(loginMsg,"err","账号或密码错误");
         }else{
-            showMsg(loginMsg,"ok","登录成功");
-            showUser(data.user.email);
+            localStorage.setItem("ok","1");
+            showOK(data.user.email);
         }
 
     }catch{
-        showMsg(loginMsg,"err","服务器异常");
+        msg(loginMsg,"err","服务器异常");
     }
-
-    loginBtn.disabled = false;
 }
 
-// 自动登录
+// 自动登录（关键）
 window.onload = async ()=>{
     const {data} = await sb.auth.getSession();
-    if(data.session){
-        showUser(data.session.user.email);
+
+    if(data.session || localStorage.getItem("ok")){
+        showOK(data.session?.user?.email || "已登录");
     }
 };
 
