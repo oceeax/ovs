@@ -33,7 +33,7 @@ body {
 .text {font-size: 14px;}
 .footer {text-align: center;margin-top: 30px;padding: 10px;font-size: 12px;color: #666;}
 
-/* 右上角登录/用户 */
+/* 右上角登录/用户（保留但不影响激活） */
 .login-btn {
     position: fixed;top: 15px;right: 20px;z-index: 9999;
     padding: 6px 14px;background: #2563eb;color: #fff;
@@ -144,7 +144,7 @@ body {
 </div>
 </div>
 
-<!-- 激活码弹窗（默认隐藏，登录后强制弹出） -->
+<!-- 激活码弹窗 -->
 <div id="activatePop" class="activate-box hide">
     <div class="activate-inner">
         <h3>请输入官方激活码解锁全部功能</h3>
@@ -160,7 +160,7 @@ function showTip(){
 }
 </script>
 
-<!-- Supabase 配置（你的专属地址+密钥） -->
+<!-- Supabase（仅用于查激活码是否已用） -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const sb = supabase.createClient(
@@ -168,20 +168,25 @@ const sb = supabase.createClient(
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
-// 异地被挤下线自动跳转
-sb.auth.onAuthStateChange((event) => {
-  if (event === "signed_out") {
-    location.href = "login.html";
-  }
-});
-
 const loginNav = document.getElementById("loginNav");
 const userNav = document.getElementById("userNav");
 const userEmail = document.getElementById("userEmail");
 const activatePop = document.getElementById("activatePop");
 
-let nowUserId = "";
 let isActOk = false;
+
+// 登录状态（保留，不影响激活）
+async function checkLogin(){
+    const {data:{session}} = await sb.auth.getSession();
+    if(session){
+        loginNav.style.display = "none";
+        userNav.style.display = "block";
+        userEmail.innerText = session.user.email;
+    }else{
+        loginNav.style.display = "block";
+        userNav.style.display = "none";
+    }
+}
 
 // 退出登录
 async function doLogout(){
@@ -189,111 +194,60 @@ async function doLogout(){
     location.reload();
 }
 
-// 核心：登录+激活状态检测（强锁版）
-async function checkUserStatus(){
-    // 1. 先检测是否登录
-    const {data:{session}} = await sb.auth.getSession();
-    if(!session){
-        // 未登录：只显示登录按钮，不显示功能，也不弹激活窗
-        loginNav.style.display = "block";
-        userNav.style.display = "none";
-        // 额外拦截所有功能按钮，防止游客直接点击
+// 核心：检查本地是否已激活
+function checkLocalActivate(){
+    const localCode = localStorage.getItem("act_code");
+    if(localCode){
+        isActOk = true;
+        activatePop.classList.add("hide");
+    }else{
+        isActOk = false;
+        activatePop.classList.remove("hide");
+        // 拦截所有卡片
         document.querySelectorAll(".card").forEach(item=>{
             item.onclick = function(e){
-                e.preventDefault();
-                alert("⚠️ 请先登录账号！");
+                if(!isActOk){
+                    e.preventDefault();
+                    alert("⚠️ 请先输入官方激活码解锁功能！");
+                }
             }
         })
-        return;
     }
-
-    // 2. 已登录：隐藏登录按钮，显示用户信息
-    loginNav.style.display = "none";
-    userNav.style.display = "block";
-    userEmail.innerText = session.user.email;
-    nowUserId = session.user.id;
-
-    // 3. 关键：强制设置「未激活」状态，无论数据库请求结果如何，先弹激活窗
-    isActOk = false;
-    activatePop.classList.remove("hide");
-
-    // 4. 再尝试从数据库读取激活状态，成功则隐藏弹窗
-    try {
-        const {count, error} = await sb.from("user_activate")
-            .select("*", {count: 'exact', head: true})
-            .eq("user_id", nowUserId);
-
-        if(!error && count > 0){
-            isActOk = true;
-            activatePop.classList.add("hide");
-        }
-    } catch (e) {
-        // 数据库请求失败（比如权限问题），直接保持未激活状态，弹窗不消失
-        console.log("激活状态查询失败：", e);
-    }
-
-    // 5. 强制拦截所有功能按钮，未激活绝对点不了
-    document.querySelectorAll(".card").forEach(item=>{
-        item.onclick = function(e){
-            if(!isActOk){
-                e.preventDefault();
-                alert("⚠️ 请先输入激活码解锁功能！");
-            }
-        }
-    })
 }
 
-// 绑定激活码（强锁版）
+// 绑定激活码（不绑账号，只标记used+存本地）
 async function bindCode(){
     const codeVal = document.getElementById("actCode").value.trim();
-    if(!codeVal){
-        return alert("请粘贴你的32位激活码");
-    }
+    if(!codeVal) return alert("请粘贴32位激活码");
 
     // 1. 检查激活码是否存在且未使用
-    const {count, error:codeErr} = await sb.from("activation_code")
-        .select("*", {count: 'exact', head: true})
+    const {count, error} = await sb.from("activation_code")
+        .select("*", {count:'exact', head:true})
         .eq("code", codeVal)
         .eq("used", false);
 
-    if(codeErr || count === 0){
-        return alert("❌ 激活码无效、错误或已被他人使用");
-    }
+    if(error || count===0) return alert("❌ 激活码无效/错误/已被使用");
 
-    // 2. 禁止重复绑定
-    const {count:userCount} = await sb.from("user_activate")
-        .select("*", {count: 'exact', head: true})
-        .eq("user_id", nowUserId);
-
-    if(userCount > 0){
-        return alert("❌ 当前账号已绑定激活码，无需重复操作");
-    }
-
-    // 3. 写入绑定关系
-    const {error:insertErr} = await sb.from("user_activate").insert([{
-        user_id: nowUserId,
-        code: codeVal
-    }]);
-    if(insertErr){
-        return alert("❌ 绑定失败：" + insertErr.message);
-    }
-
-    // 4. 标记激活码为已使用
-    const {error:updateErr} = await sb.from("activation_code")
+    // 2. 标记为已使用
+    const {error:updErr} = await sb.from("activation_code")
         .update({used:true})
         .eq("code", codeVal);
-    if(updateErr){
-        return alert("❌ 更新状态失败：" + updateErr.message);
-    }
 
-    // 5. 绑定成功，刷新页面
-    alert("✅ 激活成功！永久解锁全部工具功能");
+    if(updErr) return alert("❌ 标记失败："+updErr.message);
+
+    // 3. 存本地，永久有效（清缓存/换设备失效）
+    localStorage.setItem("act_code", codeVal);
+
+    alert("✅ 激活成功！永久解锁全部工具");
     location.reload();
 }
 
-// 页面加载完成后，强制执行状态检测
-window.onload = checkUserStatus;
+// 页面加载
+window.onload = function(){
+    checkLogin();
+    checkLocalActivate();
+};
 </script>
 
 </body>
-</html>
+    </html>
