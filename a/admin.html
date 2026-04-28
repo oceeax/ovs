@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>后台登录</title>
+<style>
+body{
+    margin:0;
+    background:#0f172a;
+    color:#fff;
+    font-family:sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+.box{
+    width:320px;
+    background:#1e293b;
+    padding:20px;
+    border-radius:10px;
+}
+input,button{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border:none;
+    border-radius:6px;
+}
+input{
+    background:#0f172a;
+    color:#fff;
+    border:1px solid #334155;
+}
+button{
+    background:#2563eb;
+    color:#fff;
+}
+.msg{
+    text-align:center;
+    margin-top:10px;
+    color:#f87171;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box" id="loginBox">
+    <h3 style="text-align:center">后台登录</h3>
+
+    <input id="pwd" type="password" placeholder="管理员密码">
+    <button onclick="login()">进入后台</button>
+
+    <div id="msg" class="msg"></div>
+</div>
+
+<div id="admin" style="display:none">
+    <h2 style="text-align:center">访问后台</h2>
+    <button onclick="load()">刷新数据</button>
+
+    <table border="1" width="100%" style="margin-top:10px;color:#fff;border-color:#334155">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>时间</th>
+            <th>IP</th>
+            <th>地区</th>
+            <th>次数</th>
+            <th>人数</th>
+        </tr>
+        </thead>
+        <tbody id="table"></tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+
+const ADMIN_PASS = "123456"; // 🔥 改这里（你的后台密码）
+
+const sb = supabase.createClient(
+  "https://czispkecvokqsvomquqo.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
+);
+
+function login(){
+    let p = document.getElementById("pwd").value;
+
+    if(p === ADMIN_PASS){
+        localStorage.setItem("admin","ok");
+        document.getElementById("loginBox").style.display="none";
+        document.getElementById("admin").style.display="block";
+        load();
+    }else{
+        document.getElementById("msg").innerText = "密码错误";
+    }
+}
+
+// 自动检测登录
+window.onload = ()=>{
+    if(localStorage.getItem("admin")==="ok"){
+        document.getElementById("loginBox").style.display="none";
+        document.getElementById("admin").style.display="block";
+        load();
+    }
+}
+
+async function load(){
+    const {data} = await sb.from("visits").select("*").order("id",{ascending:false});
+
+    let html = "";
+
+    data.forEach(i=>{
+        html += `
+        <tr>
+            <td>${i.id}</td>
+            <td>${new Date(i.created_at).toLocaleString()}</td>
+            <td>${i.ip}</td>
+            <td>${i.location}</td>
+            <td>${i.visit_count}</td>
+            <td>${i.people}</td>
+        </tr>`;
+    });
+
+    document.getElementById("table").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
