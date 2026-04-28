@@ -33,7 +33,6 @@ body {
 .text {font-size: 14px;}
 .footer {text-align: center;margin-top: 30px;padding: 10px;font-size: 12px;color: #666;}
 
-/* 右上角登录/用户 */
 .login-btn {
     position: fixed;top: 15px;right: 20px;z-index: 9999;
     padding: 6px 14px;background: #2563eb;color: #fff;
@@ -50,7 +49,6 @@ body {
     font-size:12px;cursor:pointer;
 }
 
-/* 右下角按钮 */
 .tip-btn {
     position: fixed;bottom: 15px;right: 15px;
     padding: 8px 12px;background: #2196F3;color: #fff;
@@ -59,7 +57,6 @@ body {
 }
 .tip-btn:active {opacity: 0.8;}
 
-/* 激活码弹窗 */
 .activate-box{
     position:fixed;inset:0;background:#00000077;
     display:flex;align-items:center;justify-content:center;z-index:99999;
@@ -144,23 +141,21 @@ body {
 </div>
 </div>
 
-<!-- 激活码弹窗 -->
 <div id="activatePop" class="activate-box hide">
     <div class="activate-inner">
-        <h3>请输入官方激活码解锁全部功能</h3>
-        <input id="actCode" placeholder="粘贴32位激活码">
-        <button onclick="bindCode()">立即绑定激活</button>
+        <h3>请输入6位数字激活码解锁</h3>
+        <input id="actCode" placeholder="输入6位数字激活码" maxlength="6">
+        <button onclick="bindCode()">立即激活</button>
     </div>
 </div>
 
 <script>
 function showTip(){
-    alert("欢迎使用硬核工具，请到官方购买，每个仅需十元永久有效");
+    alert("请到官方购买，每个仅需十元永久有效");
     location.href = "/h/h8/j9/index5.html";
 }
 </script>
 
-<!-- Supabase（仅用于查激活码是否已用） -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const sb = supabase.createClient(
@@ -175,7 +170,6 @@ const activatePop = document.getElementById("activatePop");
 
 let isActOk = false;
 
-// 登录状态检测（保留但不影响激活逻辑）
 async function checkLogin(){
     const {data:{session}} = await sb.auth.getSession();
     if(session){
@@ -188,13 +182,11 @@ async function checkLogin(){
     }
 }
 
-// 退出登录
 async function doLogout(){
     await sb.auth.signOut();
     location.reload();
 }
 
-// 核心：检查本地是否已激活
 function checkLocalActivate(){
     const localCode = localStorage.getItem("act_code");
     if(localCode){
@@ -203,24 +195,21 @@ function checkLocalActivate(){
     }else{
         isActOk = false;
         activatePop.classList.remove("hide");
-        // 强制拦截所有功能按钮
         document.querySelectorAll(".card").forEach(item=>{
             item.onclick = function(e){
                 if(!isActOk){
                     e.preventDefault();
-                    alert("⚠️ 请先输入官方激活码解锁功能！");
+                    alert("⚠️ 请先输入激活码解锁功能！");
                 }
             }
         })
     }
 }
 
-// 绑定激活码（不绑账号，只标记used+存本地）
 async function bindCode(){
     const codeVal = document.getElementById("actCode").value.trim();
-    if(!codeVal) return alert("请粘贴32位激活码");
+    if(codeVal.length !== 6) return alert("请输入完整的6位数字激活码");
 
-    // 1. 检查激活码是否存在且未使用
     const {count, error} = await sb.from("activation_code")
         .select("*", {count:'exact', head:true})
         .eq("code", codeVal)
@@ -228,21 +217,13 @@ async function bindCode(){
 
     if(error || count===0) return alert("❌ 激活码无效/错误/已被使用");
 
-    // 2. 标记为已使用
-    const {error:updErr} = await sb.from("activation_code")
-        .update({used:true})
-        .eq("code", codeVal);
+    await sb.from("activation_code").update({used:true}).eq("code", codeVal);
 
-    if(updErr) return alert("❌ 标记失败："+updErr.message);
-
-    // 3. 存本地，永久有效（清缓存/换设备失效）
     localStorage.setItem("act_code", codeVal);
-
     alert("✅ 激活成功！永久解锁全部工具");
     location.reload();
 }
 
-// 页面加载
 window.onload = function(){
     checkLogin();
     checkLocalActivate();
@@ -250,4 +231,4 @@ window.onload = function(){
 </script>
 
 </body>
-</html>
+    </html>
