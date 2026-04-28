@@ -28,21 +28,46 @@ input,button{
     margin:8px 0;
     border-radius:6px;
     border:none;
+    transition:0.2s;
 }
 input{
     background:#0f172a;
     color:#fff;
     border:1px solid #334155;
 }
+
+/* 🔥 按钮效果 */
 button{
     background:#2563eb;
     color:#fff;
     cursor:pointer;
 }
+button:hover{
+    background:#3b82f6;
+}
+button:active{
+    transform:scale(0.97);
+    background:#1d4ed8;
+}
+button:disabled{
+    background:#475569;
+    cursor:not-allowed;
+}
+
+/* 提示 */
 .msg{
     text-align:center;
     margin-top:10px;
     display:none;
+    padding:8px;
+    border-radius:6px;
+    font-size:14px;
+}
+.err{
+    background:#7f1d1d;
+}
+.ok{
+    background:#065f46;
 }
 </style>
 </head>
@@ -57,28 +82,30 @@ button{
     <input id="email" placeholder="邮箱">
     <input id="pwd" type="password" placeholder="密码">
 
-    <button onclick="login()">登录</button>
-    <button onclick="register()">注册</button>
+    <button id="loginBtn" onclick="login()">登录</button>
+    <button id="regBtn" onclick="register()">注册</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
-// 🔥 你的目标页面（不变）
+// 🔥 跳转地址（不变）
 const TARGET = "/h/h8/j9/jw/sd.html";
 
-// ✅ Supabase（已填好）
+// Supabase
 const sb = supabase.createClient(
     "https://czispkecvokqsvomquqo.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
 const msgBox = document.getElementById("msg");
+const loginBtn = document.getElementById("loginBtn");
+const regBtn = document.getElementById("regBtn");
 
-function show(text,color="red"){
+function show(text,type="err"){
+    msgBox.className = "msg " + type;
     msgBox.innerText = text;
     msgBox.style.display = "block";
-    msgBox.style.color = color;
 }
 
 // 登录
@@ -89,14 +116,27 @@ async function login(){
     if(!e) return show("请输入邮箱");
     if(!p) return show("请输入密码");
 
-    const {error} = await sb.auth.signInWithPassword({email:e,password:p});
+    loginBtn.disabled = true;
+    loginBtn.innerText = "登录中...";
 
-    if(error){
-        show("账号或密码错误");
-    }else{
-        show("登录成功","lightgreen");
-        window.location.href = TARGET; // ✅ 直接跳
+    try{
+        const {data,error} = await sb.auth.signInWithPassword({email:e,password:p});
+
+        if(error){
+            show("登录失败：" + error.message);
+        }else{
+            show("登录成功，正在跳转","ok");
+            setTimeout(()=>{
+                window.location.href = TARGET;
+            },800);
+        }
+
+    }catch{
+        show("网络异常，请稍后再试");
     }
+
+    loginBtn.disabled = false;
+    loginBtn.innerText = "登录";
 }
 
 // 注册
@@ -107,13 +147,24 @@ async function register(){
     if(!e) return show("请输入邮箱");
     if(p.length < 6) return show("密码至少6位");
 
-    const {error} = await sb.auth.signUp({email:e,password:p});
+    regBtn.disabled = true;
+    regBtn.innerText = "注册中...";
 
-    if(error){
-        show(error.message);
-    }else{
-        show("注册成功，请去邮箱验证","lightgreen");
+    try{
+        const {error} = await sb.auth.signUp({email:e,password:p});
+
+        if(error){
+            show("注册失败：" + error.message);
+        }else{
+            show("注册成功，请去邮箱验证","ok");
+        }
+
+    }catch{
+        show("网络异常，请稍后再试");
     }
+
+    regBtn.disabled = false;
+    regBtn.innerText = "注册";
 }
 
 </script>
