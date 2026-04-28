@@ -173,8 +173,7 @@ let isActOk = false;
 async function checkLogin(){
     const {data:{session}} = await sb.auth.getSession();
     if(session){
-        // 已登录跳转绝对路径
-        location.href = "/h/h8/j9/jw.sd.html";
+        location.href = "/h/h8/j9/jw/sd.html";
     }else{
         loginNav.style.display = "block";
         userNav.style.display = "none";
@@ -224,10 +223,9 @@ async function bindCode(){
     location.reload();
 }
 
-// 登录回调跳转绝对路径
 sb.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_IN") {
-        location.href = "/h/h8/j9/jw.sd.html";
+        location.href = "/h/h8/j9/jw/sd.html";
     }
 });
 
