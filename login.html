@@ -14,11 +14,18 @@ button:disabled{background:#475569;cursor:not-allowed;}
 .msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px;text-align:center}
 .err{background:#7f1d1d;display:block}
 .ok{background:#065f46;display:block}
-.tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px;display:flex;justify-content:center;gap:12px;align-items:center}
-.tip button{background:none;border:none;color:#3b82f6;cursor:pointer;padding:0;margin:0;width:auto}
-/* 刷新按钮样式统一美化 */
-.refresh-btn{
-    color:#94a3b8 !important;
+.tip{text-align:center;margin-top:10px;color:#94a3b8;font-size:14px;display:flex;justify-content:center;gap:16px;align-items:center}
+/* 统一链接按钮样式：和注册/登录按钮完全一致 */
+.tip button{
+    background:none;
+    border:none;
+    color:#3b82f6;
+    cursor:pointer;
+    padding:0;
+    margin:0;
+    width:auto;
+    font-size:14px;
+    font-family:inherit;
 }
 .hidden{display:none}
 </style>
@@ -33,11 +40,10 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <input id="loginEmail" placeholder="邮箱">
         <input id="loginPwd" type="password" placeholder="密码">
         <button id="loginBtn" onclick="doLogin()">登录</button>
-        <!-- 去注册 + 刷新 同行并排 -->
         <div class="tip">
             <span>没有账号？</span>
             <button onclick="showReg()">去注册</button>
-            <button class="refresh-btn" onclick="location.reload()">刷新</button>
+            <button onclick="location.reload()">刷新</button>
         </div>
     </div>
 
@@ -51,7 +57,7 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <div class="tip">
             <span>已有账号？</span>
             <button onclick="showLogin()">去登录</button>
-            <button class="refresh-btn" onclick="location.reload()">刷新</button>
+            <button onclick="location.reload()">刷新</button>
         </div>
     </div>
 
@@ -80,7 +86,6 @@ const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
 const retryText = document.getElementById('retryText');
 
-// 目标主页
 const targetUrl = "/h/h8/j9/jw/sd.html";
 let reloadTimes = 0;
 const maxTry = 3;
@@ -90,11 +95,9 @@ const sb = supabase.createClient(
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
-// 单设备互踢
 async function kickAllOtherSessions(){const{data:{sessions}}=await sb.auth.getSessions();if(!sessions)return;const{data:{session}}=await sb.auth.getSession();const cid=session?.id;for(let s of sessions)if(s.id!==cid)await sb.auth.signOut({scope:"others"})}
 sb.auth.onAuthStateChange(e=>{if(e==="signed_out")location.href="login.html"});
 
-// 页面切换
 function showLogin(){loginBox.classList.remove("hidden");regBox.classList.add("hidden");userBox.classList.add("hidden")}
 function showReg(){loginBox.classList.add("hidden");regBox.classList.remove("hidden");userBox.classList.add("hidden")}
 function showUser(email){
@@ -105,7 +108,6 @@ function showUser(email){
     startJumpTask();
 }
 
-// 自动跳转+3次自动刷新
 function startJumpTask(){
     window.location.href = targetUrl;
     setTimeout(()=>{
@@ -121,7 +123,6 @@ function startJumpTask(){
     },1800);
 }
 
-// 注册
 let regCooldown=false;const COOLDOWN=60;
 async function doReg(){
     if(regCooldown){regMsg.className="msg err";regMsg.innerText="请一分钟后再试";return}
@@ -137,7 +138,6 @@ async function doReg(){
     }else{regMsg.className="msg ok";regMsg.innerText="注册成功！请前往邮箱验证"}
 }
 
-// 登录
 async function doLogin(){
     let e=loginEmail.value.trim(),p=loginPwd.value.trim();
     loginMsg.style.display="none";
@@ -157,7 +157,6 @@ async function doLogin(){
     loginBtn.disabled=false;
 }
 
-// 自动登录检测
 window.onload = async () => {
     const {data} = await sb.auth.getSession();
     if(data.session?.user){
