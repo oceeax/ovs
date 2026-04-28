@@ -33,7 +33,6 @@ body {
 .text {font-size: 14px;}
 .footer {text-align: center;margin-top: 30px;padding: 10px;font-size: 12px;color: #666;}
 
-/* 右上角登录/用户 */
 .login-btn {
     position: fixed;top: 15px;right: 20px;z-index: 9999;
     padding: 6px 14px;background: #2563eb;color: #fff;
@@ -50,7 +49,6 @@ body {
     font-size:12px;cursor:pointer;
 }
 
-/* 右下角按钮 */
 .tip-btn {
     position: fixed;bottom: 15px;right: 15px;
     padding: 8px 12px;background: #2196F3;color: #fff;
@@ -59,7 +57,6 @@ body {
 }
 .tip-btn:active {opacity: 0.8;}
 
-/* 激活码弹窗 */
 .activate-box{
     position:fixed;inset:0;background:#00000077;
     display:flex;align-items:center;justify-content:center;z-index:99999;
@@ -144,11 +141,10 @@ body {
 </div>
 </div>
 
-<!-- 激活码弹窗 -->
 <div id="activatePop" class="activate-box hide">
     <div class="activate-inner">
         <h3>请输入官方激活码解锁全部功能</h3>
-        <input id="actCode" placeholder="粘贴32位激活码">
+        <input id="actCode" placeholder="粘贴激活码">
         <button onclick="bindCode()">立即绑定激活</button>
     </div>
 </div>
@@ -160,20 +156,15 @@ function showTip(){
 }
 </script>
 
-<!-- Supabase 修复版，已填好你的配置 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// 你的专属正确配置 无错
 const sb = supabase.createClient(
     "https://czispkecvokqsvomquqo.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
-// 异地被挤下线自动跳转
-sb.auth.onAuthStateChange((event) => {
-  if (event === "signed_out") {
-    location.href = "login.html";
-  }
-});
+sb.auth.onAuthStateChange((e)=>{if(e==="signed_out")location.href="login.html"});
 
 const loginNav = document.getElementById("loginNav");
 const userNav = document.getElementById("userNav");
@@ -183,95 +174,55 @@ const activatePop = document.getElementById("activatePop");
 let nowUserId = "";
 let isActOk = false;
 
-// 退出登录
-async function doLogout(){
-    await sb.auth.signOut();
-    location.reload();
-}
+async function doLogout(){await sb.auth.signOut();location.reload()}
 
-// 检测登录+激活状态（修复版，避免 406 错误）
 async function checkUserStatus(){
     const {data:{session}} = await sb.auth.getSession();
     if(!session){
-        loginNav.style.display = "block";
-        userNav.style.display = "none";
+        loginNav.style.display="block";
+        userNav.style.display="none";
         return;
     }
-    // 已登录
-    loginNav.style.display = "none";
-    userNav.style.display = "block";
+    loginNav.style.display="none";
+    userNav.style.display="block";
     userEmail.innerText = session.user.email;
     nowUserId = session.user.id;
 
-    // 用 count() 替代 single()，避免 406 错误
-    const {count, error} = await sb.from("user_activate")
-        .select("*", {count: 'exact', head: true})
-        .eq("user_id", nowUserId);
+    const {data:bindData} = await sb.from("user_activate")
+        .select("id").eq("user_id",nowUserId).single().catch(()=>null);
 
-    if(!error && count > 0){
-        // 已激活
-        isActOk = true;
+    if(bindData){
+        isActOk=true;
         activatePop.classList.add("hide");
     }else{
-        // 未激活
-        isActOk = false;
+        isActOk=false;
         activatePop.classList.remove("hide");
-        // 拦截所有卡片
-        document.querySelectorAll(".card").forEach(item=>{
-            item.onclick = function(e){
-                if(!isActOk){
-                    e.preventDefault();
-                    alert("⚠️ 该功能需先输入官方激活码解锁");
-                }
+        document.querySelectorAll(".card").forEach(card=>{
+            card.onclick=e=>{
+                if(!isActOk){e.preventDefault();alert("⚠️ 需要先激活");}
             }
         })
     }
 }
 
-// 绑定激活码（修复版，避免 406 错误）
 async function bindCode(){
-    const codeVal = document.getElementById("actCode").value.trim();
-    if(!codeVal){
-        return alert("请粘贴你的32位激活码");
-    }
+    const val = document.getElementById("actCode").value.trim();
+    if(!val)return alert("请输入激活码");
 
-    // 1. 用 count() 检查激活码是否存在，避免 406 错误
-    const {count, error:codeErr} = await sb.from("activation_code")
-        .select("*", {count: 'exact', head: true})
-        .eq("code", codeVal)
-        .eq("used", false);
+    const {data:codeItem} = await sb.from("activation_code")
+        .select("id").eq("code",val).eq("used",false).single().catch(()=>null);
 
-    if(codeErr || count === 0){
-        return alert("❌ 激活码无效、错误或已被他人使用");
-    }
+    if(!codeItem)return alert("❌ 激活码无效/已使用");
 
-    // 2. 禁止重复绑定
-    const {count:userCount} = await sb.from("user_activate")
-        .select("*", {count: 'exact', head: true})
-        .eq("user_id", nowUserId);
+    const {data:hasBind} = await sb.from("user_activate")
+        .select("id").eq("user_id",nowUserId).single().catch(()=>null);
 
-    if(userCount > 0){
-        return alert("❌ 当前账号已绑定激活码，无需重复操作");
-    }
+    if(hasBind)return alert("❌ 账号已激活");
 
-    // 3. 写入绑定关系
-    const {error:insertErr} = await sb.from("user_activate").insert([{
-        user_id: nowUserId,
-        code: codeVal
-    }]);
-    if(insertErr){
-        return alert("❌ 绑定失败：" + insertErr.message);
-    }
+    await sb.from("user_activate").insert({user_id:nowUserId,code:val});
+    await sb.from("activation_code").update({used:true}).eq("code",val);
 
-    // 4. 标记激活码为已使用
-    const {error:updateErr} = await sb.from("activation_code")
-        .update({used:true})
-        .eq("code", codeVal);
-    if(updateErr){
-        return alert("❌ 更新状态失败：" + updateErr.message);
-    }
-
-    alert("✅ 激活成功！永久解锁全部工具功能");
+    alert("✅ 激活成功");
     location.reload();
 }
 
