@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>稳定登录系统</title>
+<title>登录</title>
 
 <style>
 body{
@@ -17,100 +17,48 @@ body{
     height:100vh;
 }
 .box{
-    width:360px;
+    width:320px;
     background:#1e293b;
-    padding:25px;
-    border-radius:12px;
+    padding:20px;
+    border-radius:10px;
 }
-h2{text-align:center;margin-bottom:15px}
-
-input{
+input,button{
     width:100%;
     padding:12px;
     margin:8px 0;
     border-radius:6px;
-    border:1px solid #334155;
+    border:none;
+}
+input{
     background:#0f172a;
     color:#fff;
+    border:1px solid #334155;
 }
-
 button{
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border:none;
-    border-radius:6px;
     background:#2563eb;
     color:#fff;
     cursor:pointer;
 }
-button:disabled{background:#475569}
-
 .msg{
-    padding:10px;
-    border-radius:6px;
-    margin-top:10px;
     text-align:center;
+    margin-top:10px;
     display:none;
 }
-.err{background:#7f1d1d}
-.ok{background:#065f46}
-
-.tip{
-    text-align:center;
-    margin-top:10px;
-    font-size:14px;
-    color:#94a3b8;
-}
-.tip span{
-    cursor:pointer;
-    color:#3b82f6;
-    margin:0 6px;
-}
-
-.hidden{display:none}
 </style>
 </head>
 
 <body>
 
 <div class="box">
+    <h3 style="text-align:center">登录</h3>
 
-<!-- 登录 -->
-<div id="loginBox">
-    <h2>登录</h2>
-    <div id="loginMsg" class="msg"></div>
-    <input id="loginEmail" placeholder="邮箱">
-    <input id="loginPwd" type="password" placeholder="密码">
-    <button id="loginBtn" onclick="login()">登录</button>
+    <div id="msg" class="msg"></div>
 
-    <div class="tip">
-        <span onclick="showReg()">注册</span>
-        <span onclick="location.reload()">刷新</span>
-    </div>
-</div>
+    <input id="email" placeholder="邮箱">
+    <input id="pwd" type="password" placeholder="密码">
 
-<!-- 注册 -->
-<div id="regBox" class="hidden">
-    <h2>注册</h2>
-    <div id="regMsg" class="msg"></div>
-    <input id="regEmail" placeholder="邮箱">
-    <input id="regPwd" type="password" placeholder="密码">
+    <button onclick="login()">登录</button>
     <button onclick="register()">注册</button>
-
-    <div class="tip">
-        <span onclick="showLogin()">登录</span>
-        <span onclick="location.reload()">刷新</span>
-    </div>
-</div>
-
-<!-- 成功 -->
-<div id="okBox" class="hidden" style="text-align:center">
-    <h2>登录成功</h2>
-    <p id="info" style="color:#94a3b8"></p>
-    <p id="jumpTip" style="color:#94a3b8;font-size:13px;margin-top:10px;">正在跳转...</p>
-</div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -119,131 +67,54 @@ button:disabled{background:#475569}
 // 🔥 你的目标页面（不变）
 const TARGET = "/h/h8/j9/jw/sd.html";
 
-// Supabase
+// ✅ Supabase（已填好）
 const sb = supabase.createClient(
-    "你的supabase地址",
-    "你的anon key"
+    "https://czispkecvokqsvomquqo.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
 
-// UI
-const loginBox = document.getElementById("loginBox");
-const regBox = document.getElementById("regBox");
-const okBox = document.getElementById("okBox");
+const msgBox = document.getElementById("msg");
 
-function showMsg(el,type,text){
-    el.className = "msg " + type;
-    el.innerText = text;
-    el.style.display = "block";
-}
-
-function showLogin(){
-    loginBox.classList.remove("hidden");
-    regBox.classList.add("hidden");
-    okBox.classList.add("hidden");
-}
-
-function showReg(){
-    loginBox.classList.add("hidden");
-    regBox.classList.remove("hidden");
-    okBox.classList.add("hidden");
-}
-
-function showOK(email){
-    loginBox.classList.add("hidden");
-    regBox.classList.add("hidden");
-    okBox.classList.remove("hidden");
-    document.getElementById("info").innerText = email;
-
-    safeJump();
-}
-
-// ✅ 稳定跳转（无死循环版）
-function safeJump(){
-    // 主跳转
-    window.location.href = TARGET;
-
-    // 备用跳转（防某些浏览器拦截）
-    setTimeout(()=>{
-        window.location.replace(TARGET);
-    },1200);
-
-    // 兜底提示（不再刷新）
-    setTimeout(()=>{
-        document.getElementById("jumpTip").innerText = "若未跳转，请点击这里";
-        
-        let a = document.createElement("a");
-        a.href = TARGET;
-        a.innerText = "手动进入";
-        a.style.color = "#3b82f6";
-        a.style.display = "block";
-        a.style.marginTop = "10px";
-
-        document.getElementById("okBox").appendChild(a);
-
-    },2500);
-}
-
-// 注册
-async function register(){
-    let e = regEmail.value.trim();
-    let p = regPwd.value.trim();
-
-    if(!e) return showMsg(regMsg,"err","请输入邮箱");
-    if(p.length < 6) return showMsg(regMsg,"err","密码至少6位");
-
-    try{
-        const {error} = await sb.auth.signUp({email:e,password:p});
-
-        if(error){
-            showMsg(regMsg,"err",error.message);
-        }else{
-            showMsg(regMsg,"ok","注册成功，请查邮箱验证");
-        }
-
-    }catch{
-        showMsg(regMsg,"err","网络异常");
-    }
+function show(text,color="red"){
+    msgBox.innerText = text;
+    msgBox.style.display = "block";
+    msgBox.style.color = color;
 }
 
 // 登录
 async function login(){
-    let e = loginEmail.value.trim();
-    let p = loginPwd.value.trim();
+    let e = email.value.trim();
+    let p = pwd.value.trim();
 
-    if(!e) return showMsg(loginMsg,"err","请输入邮箱");
-    if(!p) return showMsg(loginMsg,"err","请输入密码");
+    if(!e) return show("请输入邮箱");
+    if(!p) return show("请输入密码");
 
-    loginBtn.disabled = true;
+    const {error} = await sb.auth.signInWithPassword({email:e,password:p});
 
-    try{
-        const {data,error} = await sb.auth.signInWithPassword({email:e,password:p});
-
-        if(error){
-            showMsg(loginMsg,"err","账号或密码错误");
-        }else{
-            localStorage.setItem("login_ok","1");
-            showOK(data.user.email);
-        }
-
-    }catch{
-        showMsg(loginMsg,"err","服务器异常");
+    if(error){
+        show("账号或密码错误");
+    }else{
+        show("登录成功","lightgreen");
+        window.location.href = TARGET; // ✅ 直接跳
     }
-
-    loginBtn.disabled = false;
 }
 
-// 自动登录
-window.onload = async ()=>{
-    try{
-        const {data} = await sb.auth.getSession();
+// 注册
+async function register(){
+    let e = email.value.trim();
+    let p = pwd.value.trim();
 
-        if(data.session || localStorage.getItem("login_ok")){
-            showOK(data.session?.user?.email || "已登录");
-        }
-    }catch{
-        // 忽略错误，避免卡死
+    if(!e) return show("请输入邮箱");
+    if(p.length < 6) return show("密码至少6位");
+
+    const {error} = await sb.auth.signUp({email:e,password:p});
+
+    if(error){
+        show(error.message);
+    }else{
+        show("注册成功，请去邮箱验证","lightgreen");
     }
-};
+}
 
 </script>
 
