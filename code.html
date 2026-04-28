@@ -1,73 +1,119 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>6位数字激活码生成器</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-body {
-    font-family: sans-serif;
-    background: #f5f5f5;
-    padding: 30px;
-}
-.box {
-    max-width: 400px;
-    margin: 0 auto;
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-}
-button {
-    padding: 10px 20px;
-    background: #2563eb;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-textarea {
-    width: 100%;
-    height: 100px;
-    margin: 15px 0;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6位数字激活码批量生成器</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 30px;
+            margin: 0;
+        }
+        .box {
+            max-width: 450px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #1f2937;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background: #2563eb;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: none;
+            margin-bottom: 15px;
+        }
+        #msg {
+            text-align: center;
+            font-weight: 500;
+            color: #374151;
+        }
+    </style>
 </head>
 <body>
-<div class="box">
-    <h3>一键生成6位数字激活码</h3>
-    <button onclick="gen()">生成新码</button>
-    <textarea id="out" readonly placeholder="生成的激活码会显示在这里"></textarea>
-    <div id="msg"></div>
-</div>
+    <div class="box">
+        <h2>6位数字激活码生成器</h2>
+        <div class="btn-group">
+            <button onclick="gen(5)">生成 5 个</button>
+            <button onclick="gen(10)">生成 10 个</button>
+            <button onclick="gen(50)">生成 50 个</button>
+        </div>
+        <textarea id="out" readonly placeholder="生成的激活码会显示在这里，用空格或换行分隔"></textarea>
+        <div id="msg"></div>
+    </div>
 
-<script>
-// 你的 Supabase 配置（已填好）
-const sb = supabase.createClient(
-    "https://czispkecvokqsvomquqo.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
-);
+    <script>
+        // 你的 Supabase 配置（和主页完全一致）
+        const sb = supabase.createClient(
+            "https://czispkecvokqsvomquqo.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
+        );
 
-// 生成6位数字
-function rand6() {
-    return String(Math.floor(Math.random() * 900000) + 100000);
-}
+        // 生成单个 6 位纯数字
+        function get6Num() {
+            return String(Math.floor(100000 + Math.random() * 900000));
+        }
 
-async function gen() {
-    const code = rand6();
-    const { error } = await sb.from("activation_code")
-        .insert({ code: code, used: false });
+        // 批量生成并入库
+        async function gen(count) {
+            document.getElementById('msg').innerText = "正在生成中...";
+            document.getElementById('out').value = "";
 
-    if (error) {
-        document.getElementById("msg").innerText = "❌ 失败：" + error.message;
-    } else {
-        document.getElementById("out").value = code;
-        document.getElementById("msg").innerText = "✅ 生成成功！";
-    }
-}
-</script>
+            const list = [];
+            for (let i = 0; i < count; i++) {
+                list.push({
+                    code: get6Num(),
+                    used: false
+                });
+            }
+
+            const { error } = await sb.from("activation_code").insert(list);
+
+            if (error) {
+                document.getElementById('msg').innerText = "❌ 失败：" + error.message;
+            } else {
+                const codes = list.map(x => x.code).join("\n");
+                document.getElementById('out').value = codes;
+                document.getElementById('msg').innerText = `✅ 成功生成 ${count} 个激活码！`;
+            }
+        }
+    </script>
 </body>
 </html>
