@@ -160,7 +160,7 @@ function showTip(){
 }
 </script>
 
-<!-- Supabase -->
+<!-- Supabase 已填你正确地址+密钥 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const sb = supabase.createClient(
@@ -204,10 +204,10 @@ async function checkUserStatus(){
     nowUserId = session.user.id;
 
     // 查询是否已绑定激活码
-    const {data:bindData} = await sb.from("user_activate")
+    const {data:bindData, error} = await sb.from("user_activate")
         .select("*").eq("user_id", nowUserId).single();
 
-    if(bindData){
+    if(!error && bindData){
         // 已激活
         isActOk = true;
         activatePop.classList.add("hide");
@@ -227,14 +227,14 @@ async function checkUserStatus(){
     }
 }
 
-// 绑定激活码（32位长码 一码一次 一人一码）
+// 绑定激活码
 async function bindCode(){
     const codeVal = document.getElementById("actCode").value.trim();
     if(!codeVal){
         return alert("请粘贴你的32位激活码");
     }
 
-    // 1.检查激活码是否存在且未使用
+    // 1.检查激活码存在+未使用
     const {data:codeRow,error:codeErr} = await sb.from("activation_code")
         .select("*")
         .eq("code", codeVal)
@@ -245,7 +245,7 @@ async function bindCode(){
         return alert("❌ 激活码无效、错误或已被他人使用");
     }
 
-    // 2.检测当前账号是否已经绑定过
+    // 2.禁止重复绑定
     const {data:userRow} = await sb.from("user_activate")
         .select("*").eq("user_id", nowUserId).single();
 
@@ -253,13 +253,13 @@ async function bindCode(){
         return alert("❌ 当前账号已绑定激活码，无需重复操作");
     }
 
-    // 3.写入绑定关系
+    // 3.写入绑定
     await sb.from("user_activate").insert([{
         user_id: nowUserId,
         code: codeVal
     }]);
 
-    // 4.标记激活码为已使用
+    // 4.标记已使用
     await sb.from("activation_code")
         .update({used:true})
         .eq("code", codeVal);
