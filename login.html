@@ -47,6 +47,7 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <h2>登录成功</h2>
         <p id="userMail" style="color:#94a3b8"></p>
         <p style="color:#94a3b8;font-size:14px;margin-top:10px">正在跳转到首页...</p>
+        <p id="retryTip" style="color:#64748b;font-size:13px;margin-top:8px"></p>
     </div>
 </div>
 
@@ -66,6 +67,14 @@ const regPwd = document.getElementById('regPwd');
 const userMail = document.getElementById('userMail');
 const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
+const retryTip = document.getElementById('retryTip');
+
+// 目标真实主页
+const targetUrl = "/h/h8/j9/jw/sd.html";
+// 自动刷新次数、间隔
+let reloadCount = 0;
+const maxReload = 3;
+const waitTime = 1200;
 
 // Supabase 初始化
 const sb = supabase.createClient(
@@ -74,15 +83,10 @@ const sb = supabase.createClient(
 );
     // ========== 真正有效 单设备唯一登录 / 全设备互踢 修复版 ==========
 async function kickAllOtherSessions() {
-  // 获取当前用户全部会话
   const { data: { sessions }, error } = await sb.auth.getSessions();
   if (error || !sessions) return;
-
-  // 获取本次最新登录的会话ID
   const { data: { session } } = await sb.auth.getSession();
   const nowId = session?.id;
-
-  // 遍历删除 所有不是当前的会话
   for (const item of sessions) {
     if (item.id !== nowId) {
       await sb.auth.admin.signOut(item.id);
@@ -90,30 +94,24 @@ async function kickAllOtherSessions() {
   }
 }
 
-// 拦截登录，登录成功自动踢所有旧设备
 const oldLogin = sb.auth.signInWithPassword;
 sb.auth.signInWithPassword = async function (args) {
   const res = await oldLogin.apply(this, arguments);
   if (!res.error) {
-    // 登录成功 → 立刻踢掉电脑/手机/其他浏览器全部旧登录
     await kickAllOtherSessions();
   }
   return res;
 };
 
-// 被挤下线 自动跳转登录页
 sb.auth.onAuthStateChange((state) => {
   if (state === "signed_out") {
     location.href = "login.html";
   }
 });
 // ====================================================
-// ========== 单设备唯一登录、挤下线 核心代码 ==========
 async function kickOtherSessions() {
   const { data: { sessions }, error } = await sb.auth.getSessions();
   if (error || !sessions || sessions.length <= 1) return;
-
-  // 保留当前会话，全部踢掉其它会话
   const currentId = (await sb.auth.getSession()).data.session?.id;
   for (const s of sessions) {
     if (s.id !== currentId) {
@@ -123,27 +121,22 @@ async function kickOtherSessions() {
   }
 }
 
-// 每次登录成功 自动执行踢下线
 const originSignIn = sb.auth.signInWithPassword;
 sb.auth.signInWithPassword = async function (opts) {
   const res = await originSignIn.call(sb.auth, opts);
-  // 登录成功后，清理异地登录
   if(!res.error) kickOtherSessions();
   return res;
 };
 
-// 页面打开自动检测：异地被挤 强制退到登录页
 sb.auth.onAuthStateChange((event) => {
   if (event === "signed_out") {
     window.location.href = "login.html";
   }
 });
 // ====================================================
-// 一分钟冷却
 const COOLDOWN = 60;
 let regCooldown = false;
 
-// 切换
 function showLogin(){
     loginBox.classList.remove("hidden");
     regBox.classList.add("hidden");
@@ -161,6 +154,24 @@ function showUser(email){
     regBox.classList.add("hidden");
     userBox.classList.remove("hidden");
     if(email) userMail.innerText = email;
+    // 进入中转逻辑
+    startJumpCheck();
+}
+
+// 跳转+三次自动刷新逻辑
+function startJumpCheck(){
+    // 直接尝试跳转主页
+    window.location.href = targetUrl;
+    // 跳转失败滞留本页 → 执行刷新
+    setTimeout(()=>{
+        reloadCount++;
+        if(reloadCount <= maxReload){
+            retryTip.innerText = `跳转异常，自动重试 ${reloadCount}/${maxReload}`;
+            location.reload();
+        }else{
+            retryTip.innerText = "多次跳转失败，请手动刷新";
+        }
+    }, waitTime);
 }
 
 // 注册
@@ -248,9 +259,6 @@ async function doLogin(){
             loginMsg.className="msg ok";
             loginMsg.innerText = "登录成功！正在跳转...";
             showUser(data.user.email);
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 1000);
         }
     }catch(e){
         loginMsg.className="msg err";
@@ -260,15 +268,12 @@ async function doLogin(){
     loginBtn.disabled = false;
 }
 
-// 页面加载检测登录状态
+// 页面已登录自动跳转+容错刷新
 window.onload = async () => {
     try{
         const { data } = await sb.auth.getSession();
         if(data.session?.user){
             showUser(data.session.user.email);
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 1000);
         }
     }catch(e){}
 };
