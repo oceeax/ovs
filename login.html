@@ -47,14 +47,12 @@ button:disabled{background:#475569;cursor:not-allowed;}
         <h2>登录成功</h2>
         <p id="userMail" style="color:#94a3b8"></p>
         <p style="color:#94a3b8;font-size:14px;margin-top:10px">正在跳转到首页...</p>
-        <p id="retryTip" style="color:#64748b;font-size:13px;margin-top:8px"></p>
+        <p id="retryText" style="color:#f87171;font-size:13px;margin-top:12px;"></p>
     </div>
 </div>
 
-<!-- Supabase 核心引入 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// DOM 元素
 const loginBox = document.getElementById('loginBox');
 const regBox = document.getElementById('regBox');
 const userBox = document.getElementById('userBox');
@@ -67,215 +65,97 @@ const regPwd = document.getElementById('regPwd');
 const userMail = document.getElementById('userMail');
 const loginBtn = document.getElementById('loginBtn');
 const regBtn = document.getElementById('regBtn');
-const retryTip = document.getElementById('retryTip');
+const retryText = document.getElementById('retryText');
 
-// 目标真实主页
+// 目标主页地址
 const targetUrl = "/h/h8/j9/jw/sd.html";
-// 自动刷新次数、间隔
-let reloadCount = 0;
-const maxReload = 3;
-const waitTime = 1200;
+let reloadTimes = 0;
+const maxTry = 3;
 
-// Supabase 初始化
 const sb = supabase.createClient(
     "https://czispkecvokqsvomquqo.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
 );
-    // ========== 真正有效 单设备唯一登录 / 全设备互踢 修复版 ==========
-async function kickAllOtherSessions() {
-  const { data: { sessions }, error } = await sb.auth.getSessions();
-  if (error || !sessions) return;
-  const { data: { session } } = await sb.auth.getSession();
-  const nowId = session?.id;
-  for (const item of sessions) {
-    if (item.id !== nowId) {
-      await sb.auth.admin.signOut(item.id);
-    }
-  }
-}
 
-const oldLogin = sb.auth.signInWithPassword;
-sb.auth.signInWithPassword = async function (args) {
-  const res = await oldLogin.apply(this, arguments);
-  if (!res.error) {
-    await kickAllOtherSessions();
-  }
-  return res;
-};
+// 单设备互踢 保留
+async function kickAllOtherSessions(){const{data:{sessions}}=await sb.auth.getSessions();if(!sessions)return;const{data:{session}}=await sb.auth.getSession();const cid=session?.id;for(let s of sessions)if(s.id!==cid)await sb.auth.signOut({scope:"others"})}
+sb.auth.onAuthStateChange(e=>{if(e==="signed_out")location.href="login.html"});
 
-sb.auth.onAuthStateChange((state) => {
-  if (state === "signed_out") {
-    location.href = "login.html";
-  }
-});
-// ====================================================
-async function kickOtherSessions() {
-  const { data: { sessions }, error } = await sb.auth.getSessions();
-  if (error || !sessions || sessions.length <= 1) return;
-  const currentId = (await sb.auth.getSession()).data.session?.id;
-  for (const s of sessions) {
-    if (s.id !== currentId) {
-      await sb.auth.signOut({ scope: "others" });
-      break;
-    }
-  }
-}
-
-const originSignIn = sb.auth.signInWithPassword;
-sb.auth.signInWithPassword = async function (opts) {
-  const res = await originSignIn.call(sb.auth, opts);
-  if(!res.error) kickOtherSessions();
-  return res;
-};
-
-sb.auth.onAuthStateChange((event) => {
-  if (event === "signed_out") {
-    window.location.href = "login.html";
-  }
-});
-// ====================================================
-const COOLDOWN = 60;
-let regCooldown = false;
-
-function showLogin(){
-    loginBox.classList.remove("hidden");
-    regBox.classList.add("hidden");
-    userBox.classList.add("hidden");
-    loginMsg.style.display = "none";
-}
-function showReg(){
-    loginBox.classList.add("hidden");
-    regBox.classList.remove("hidden");
-    userBox.classList.add("hidden");
-    regMsg.style.display = "none";
-}
+// 页面切换
+function showLogin(){loginBox.classList.remove("hidden");regBox.classList.add("hidden");userBox.classList.add("hidden")}
+function showReg(){loginBox.classList.add("hidden");regBox.classList.remove("hidden");userBox.classList.add("hidden")}
 function showUser(email){
     loginBox.classList.add("hidden");
     regBox.classList.add("hidden");
     userBox.classList.remove("hidden");
-    if(email) userMail.innerText = email;
-    // 进入中转逻辑
-    startJumpCheck();
+    userMail.innerText = email || "";
+    // 执行跳转+重试刷新
+    startJumpTask();
 }
 
-// 跳转+三次自动刷新逻辑
-function startJumpCheck(){
-    // 直接尝试跳转主页
-    window.location.href = targetUrl;
-    // 跳转失败滞留本页 → 执行刷新
+// 核心：跳转失败自动刷新3次
+function startJumpTask(){
+    // 先尝试跳转主页
+    let jumpWin = window.open(targetUrl,"_self");
+    // 延迟检测，如果还在当前页 = 跳转失败
     setTimeout(()=>{
-        reloadCount++;
-        if(reloadCount <= maxReload){
-            retryTip.innerText = `跳转异常，自动重试 ${reloadCount}/${maxReload}`;
-            location.reload();
-        }else{
-            retryTip.innerText = "多次跳转失败，请手动刷新";
+        // 判定：仍停留在登录页 → 刷新
+        if(location.pathname.indexOf("login.html")!==-1){
+            reloadTimes++;
+            if(reloadTimes <= maxTry){
+                retryText.innerText = `跳转失败，自动刷新 ${reloadTimes}/${maxTry}`;
+                setTimeout(()=>{
+                    location.reload();
+                },1500);
+            }else{
+                retryText.innerText = "已重试3次，请手动进入首页";
+            }
         }
-    }, waitTime);
+    },1800);
 }
 
 // 注册
+let regCooldown=false;const COOLDOWN=60;
 async function doReg(){
-    if (regCooldown) {
-        regMsg.className="msg err";
-        regMsg.innerText="请一分钟后再试";
-        return;
-    }
-
-    let email = regEmail.value.trim();
-    let password = regPwd.value.trim();
-    regMsg.style.display = "none";
-
-    if(!email){
-        regMsg.className="msg err";
-        regMsg.innerText="请输入邮箱";
-        return;
-    }
-    if(password.length < 6){
-        regMsg.className="msg err";
-        regMsg.innerText="密码至少6位";
-        return;
-    }
-
-    regBtn.disabled = true;
-
-    const { error } = await sb.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-            emailRedirectTo: "https://ddaa.online/login.html"
-        }
-    });
-
-    regBtn.disabled = false;
-
+    if(regCooldown){regMsg.className="msg err";regMsg.innerText="请一分钟后再试";return}
+    let e=regEmail.value.trim(),p=regPwd.value.trim();
+    if(!e){regMsg.className="msg err";regMsg.innerText="请输入邮箱";return}
+    if(p.length<6){regMsg.className="msg err";regMsg.innerText="密码至少6位";return}
+    regBtn.disabled=true;
+    const{error}=await sb.auth.signUp({email:e,password:p,options:{emailRedirectTo:"https://ddaa.online/login.html"}});
+    regBtn.disabled=false;
     if(error){
-        if(error.message.includes("rate limit")){
-            regMsg.className="msg err";
-            regMsg.innerText="请一分钟后再试";
-            regCooldown = true;
-            setTimeout(() => {
-                regCooldown = false;
-            }, COOLDOWN * 1000);
-        } else {
-            regMsg.className="msg err";
-            regMsg.innerText = error.message;
-        }
-    }else{
-        regMsg.className="msg ok";
-        regMsg.innerText="注册成功！请前往邮箱验证";
-    }
+        if(error.message.includes("rate limit")){regMsg.className="msg err";regMsg.innerText="请一分钟后再试";regCooldown=true;setTimeout(()=>regCooldown=false,COOLDOWN*1000)}
+        else{regMsg.className="msg err";regMsg.innerText=error.message}
+    }else{regMsg.className="msg ok";regMsg.innerText="注册成功！请前往邮箱验证"}
 }
 
 // 登录
 async function doLogin(){
-    let email = loginEmail.value.trim();
-    let password = loginPwd.value.trim();
-    loginMsg.style.display = "none";
-
-    if(!email){
-        loginMsg.className="msg err";
-        loginMsg.innerText="请输入邮箱";
-        return;
-    }
-    if(!password){
-        loginMsg.className="msg err";
-        loginMsg.innerText="请输入密码";
-        return;
-    }
-
-    loginBtn.disabled = true;
-
+    let e=loginEmail.value.trim(),p=loginPwd.value.trim();
+    loginMsg.style.display="none";
+    if(!e){loginMsg.className="msg err";loginMsg.innerText="请输入邮箱";return}
+    if(!p){loginMsg.className="msg err";loginMsg.innerText="请输入密码";return}
+    loginBtn.disabled=true;
     try{
-        const { data, error } = await sb.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-
-        if(error){
-            loginMsg.className="msg err";
-            loginMsg.innerText = "用户不存在或密码错误";
-        }else{
+        const{data,error}=await sb.auth.signInWithPassword({email:e,password:p});
+        if(error){loginMsg.className="msg err";loginMsg.innerText="用户不存在或密码错误"}
+        else{
+            await kickAllOtherSessions();
             loginMsg.className="msg ok";
-            loginMsg.innerText = "登录成功！正在跳转...";
+            loginMsg.innerText="登录成功";
             showUser(data.user.email);
         }
-    }catch(e){
-        loginMsg.className="msg err";
-        loginMsg.innerText = "请求异常，请稍后重试";
-    }
-
-    loginBtn.disabled = false;
+    }catch{loginMsg.className="msg err";loginMsg.innerText="请求异常，请稍后重试"}
+    loginBtn.disabled=false;
 }
 
-// 页面已登录自动跳转+容错刷新
+// 打开页面已登录自动进入成功页+触发重试
 window.onload = async () => {
-    try{
-        const { data } = await sb.auth.getSession();
-        if(data.session?.user){
-            showUser(data.session.user.email);
-        }
-    }catch(e){}
+    const {data} = await sb.auth.getSession();
+    if(data.session?.user){
+        showUser(data.session.user.email);
+    }
 };
 </script>
 
