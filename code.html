@@ -46,9 +46,6 @@
         button:hover {
             background: #1d4ed8;
         }
-        button:active {
-            transform: scale(0.98);
-        }
         textarea {
             width: 100%;
             height: 150px;
@@ -80,18 +77,15 @@
     </div>
 
     <script>
-        // 你的 Supabase 配置（和主页完全一致）
         const sb = supabase.createClient(
             "https://czispkecvokqsvomquqo.supabase.co",
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6aXNwa2Vjdm9rcXN2b21xdXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxODc4MDEsImV4cCI6MjA5Mjc2MzgwMX0.0S1DcKYE1aVjaZsAKURzGdd4X2G2q5o570Q6pUiOWp0"
         );
 
-        // 生成单个 6 位纯数字
         function get6Num() {
             return String(Math.floor(100000 + Math.random() * 900000));
         }
 
-        // 批量生成并入库
         async function gen(count) {
             document.getElementById('msg').innerText = "正在生成中...";
             document.getElementById('out').value = "";
