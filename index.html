@@ -33,7 +33,7 @@ body {
 .text {font-size: 14px;}
 .footer {text-align: center;margin-top: 30px;padding: 10px;font-size: 12px;color: #666;}
 
-/* 右上角登录/用户（保留但不影响激活） */
+/* 右上角登录/用户 */
 .login-btn {
     position: fixed;top: 15px;right: 20px;z-index: 9999;
     padding: 6px 14px;background: #2563eb;color: #fff;
@@ -175,7 +175,7 @@ const activatePop = document.getElementById("activatePop");
 
 let isActOk = false;
 
-// 登录状态（保留，不影响激活）
+// 登录状态检测（保留但不影响激活逻辑）
 async function checkLogin(){
     const {data:{session}} = await sb.auth.getSession();
     if(session){
@@ -203,7 +203,7 @@ function checkLocalActivate(){
     }else{
         isActOk = false;
         activatePop.classList.remove("hide");
-        // 拦截所有卡片
+        // 强制拦截所有功能按钮
         document.querySelectorAll(".card").forEach(item=>{
             item.onclick = function(e){
                 if(!isActOk){
@@ -250,4 +250,4 @@ window.onload = function(){
 </script>
 
 </body>
-    </html>
+</html>
